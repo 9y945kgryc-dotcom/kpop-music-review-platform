@@ -88,6 +88,8 @@ Set DATABASE_URL in Cloudflare Pages → Settings → Variables and Secrets for 
 6. Verify sign-in, review create/edit/delete, likes, catalogue submissions, admin moderation, and Deezer artwork search against the Production URL.
 7. Keep the legacy `song_reviews` table and numeric song IDs. The normalized schema remains a future migration target, not a replacement.
 
-Legacy `spotify_url` and `apple_music_url` database columns are intentionally retained during this migration to avoid deleting historical values. The application no longer reads, writes, searches, or embeds those providers. New active links are stored in `deezer_url` on songs and albums.\n\n## Commercial use
+Legacy `spotify_url` and `apple_music_url` database columns are intentionally retained during this migration to avoid deleting historical values. The application no longer reads, writes, searches, or embeds those providers. New active links are stored in `deezer_url` on songs and albums.
+
+## Commercial use
 
 Check the current terms and pricing of Cloudflare and Neon before public or commercial operation. Choose plans appropriate to expected traffic, data retention, and business use.
