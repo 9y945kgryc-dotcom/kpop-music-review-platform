@@ -60,7 +60,12 @@ export async function onRequestPatch(context) {
       if (submission.submission_type === "song") {
         const duplicate = await sql`SELECT id FROM public.songs WHERE LOWER(title) = LOWER(${p.title}) AND artist_id = ${artistId} LIMIT 1`;
         if (duplicate.length) return json({ error: "同じアーティスト・曲名の楽曲がすでに登録されています。重複を確認してください。" }, 409);
-        await sql`INSERT INTO public.songs (title, artist_id, spotify_url, apple_music_url) VALUES (${p.title}, ${artistId}, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})`;
+        const insertedSong = await sql`INSERT INTO public.songs (title, artist_id, spotify_url, apple_music_url) VALUES (${p.title}, ${artistId}, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null}) RETURNING id`;
+        // A standalone song can still use its Apple Music release artwork in the existing album catalogue.
+        if (p.coverImageUrl) {
+          await sql`INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url)
+            VALUES (${p.collectionTitle || p.title}, ${p.artist}, ${p.releaseDate || null}, 'single', ${p.coverImageUrl}, ${JSON.stringify([insertedSong[0].id])}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})`;
+        }
       } else {
         const trackIds = [];
         for (const trackTitle of (Array.isArray(p.tracks) ? p.tracks : [])) {
