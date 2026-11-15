@@ -42,7 +42,7 @@ export async function onRequestPatch(context){
     const body=await context.request.json(),id=Number(body.id),itemType=body.type==="song"?"song":"album";
     const artworkUrl=safeUrl(body.artworkUrl,"artwork"),appleMusicUrl=safeUrl(body.appleMusicUrl,"apple"),spotifyUrl=safeUrl(body.spotifyUrl,"spotify");
     const collectionTitle=typeof body.collectionTitle==="string"?body.collectionTitle.trim().slice(0,160):"";
-    if(!Number.isSafeInteger(id)||id<1||!artworkUrl)return json({error:"作品IDまたはジャケット画像URLが正しくありません。"},400);
+    if(!Number.isSafeInteger(id)||(itemType==="album"&&id<1)||(itemType==="song"&&id<0)||!artworkUrl)return json({error:"作品IDまたはジャケット画像URLが正しくありません。"},400);
     const sql=getSql(context);
     if(itemType==="song"){
       const songs=await sql`SELECT s.id,s.title,a.name AS artist_name,s.release_date FROM public.songs s JOIN public.artists a ON a.id=s.artist_id WHERE s.id=${id} LIMIT 1`;
