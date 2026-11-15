@@ -42,6 +42,7 @@ The overall score is entered independently; it is not calculated as the average 
 - index.html: current frontend.
 - functions/api/reviews.js: current Neon-backed review API.
 - database/schema.sql: proposed normalized relational model for profiles, artists, albums, songs, reviews, and social features.
+- database/catalog-model-v2.sql: additive relationships for album credits, track listings, song versions, and group membership.
 - docs/backend-setup.md: deployment and environment configuration notes.
 - .env.example: names of required environment variables only; never put real secrets here.
 
