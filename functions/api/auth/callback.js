@@ -17,11 +17,10 @@ export async function onRequestGet({request,env}){
     const validIssuer=["accounts.google.com","https://accounts.google.com"].includes(identity.iss);
     if(identity.aud!==env.GOOGLE_CLIENT_ID||!validIssuer||Number(identity.exp)<=Math.floor(Date.now()/1000)||identity.nonce!==c.stagelog_oauth_nonce||identity.email_verified!=="true"||!identity.sub||!identity.email) throw new Error("Google identity validation failed");
     const sql=sqlFor({env});
-    const displayName=(identity.name||identity.given_name||identity.email.split("@")[0]).slice(0,60);
     const rows=await sql`
       INSERT INTO public.users(google_sub,email,display_name,avatar_url)
-      VALUES(${identity.sub},${identity.email},${displayName},${identity.picture||null})
-      ON CONFLICT(google_sub) DO UPDATE SET email=EXCLUDED.email, updated_at=NOW()
+      VALUES(${identity.sub},${identity.email},'STAGELOG User',NULL)
+      ON CONFLICT(google_sub) DO UPDATE SET email=EXCLUDED.email, avatar_url=NULL, updated_at=NOW()
       RETURNING id
     `;
     const session=randomToken(48),hash=await sha256(session);
