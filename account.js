@@ -5,7 +5,7 @@ function stagelogAvatar(u){return u?.avatar_url?'<img class="sl-avatar" src="'+s
 async function stagelogRefreshAuth(){
   try{const d=await stagelogApi('/api/auth/me');stagelogUser=d.user||null;}catch{stagelogUser=null;}
   const box=document.getElementById('stagelog-auth');if(!box)return;
-  box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenSettings()">設定</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button>':'<button onclick="location.href=\\'/api/auth/google\\'">Googleログイン</button><button onclick="stagelogOpenSettings()">設定</button>'
+  box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenSettings()">設定</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button>':'<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button><button onclick="stagelogOpenSettings()">設定</button>'
   if(stagelogUser)stagelogLoadUnread();if(typeof loadReviews==='function')await loadReviews();
 }
 
@@ -21,7 +21,7 @@ function stagelogSettingsModal(){
 function stagelogOpenSettings(){
  const el=stagelogSettingsModal(),s=stagelogGetSettings();
  document.getElementById("sl-setting-density").value=s.density;document.getElementById("sl-setting-motion").value=s.motion;document.getElementById("sl-setting-start").value=s.startTab;
- document.getElementById("sl-settings-account").innerHTML=stagelogUser?'<p><b>'+stagelogEsc(stagelogUser.display_name||"K-REVIEW member")+'</b><br><span class="muted">'+stagelogEsc(stagelogUser.email||"")+'</span></p><button class="sl-logout-button" onclick="stagelogLogout();stagelogCloseSettings()">ログアウト</button>':'<p class="muted">ログインしていません。レビュー投稿やプロフィール機能を利用するにはGoogleログインしてください。</p><button class="primary" onclick="location.href=\\'/api/auth/google\\'">Googleログイン</button>';
+ document.getElementById("sl-settings-account").innerHTML=stagelogUser?'<p><b>'+stagelogEsc(stagelogUser.display_name||"K-REVIEW member")+'</b><br><span class="muted">'+stagelogEsc(stagelogUser.email||"")+'</span></p><button class="sl-logout-button" onclick="stagelogLogout();stagelogCloseSettings()">ログアウト</button>':'<p class="muted">ログインしていません。レビュー投稿やプロフィール機能を利用するにはGoogleログインしてください。</p><button class="primary" onclick="location.href=\'/api/auth/google\'">Googleログイン</button>';
  el.classList.add("open");
 }
 function stagelogCloseSettings(){document.getElementById("stagelog-settings-modal")?.classList.remove("open");}
