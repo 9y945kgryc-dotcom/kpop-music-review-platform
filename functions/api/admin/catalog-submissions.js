@@ -67,6 +67,8 @@ export async function onRequestPatch(context) {
             VALUES (${p.collectionTitle || p.title}, ${p.artist}, ${p.releaseDate || null}, 'single', ${p.coverImageUrl}, ${JSON.stringify([insertedSong[0].id])}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})`;
         }
       } else {
+        const duplicateAlbum = await sql`SELECT id FROM public.stagelog_albums WHERE LOWER(BTRIM(artist_name))=LOWER(BTRIM(${p.artist})) AND LOWER(BTRIM(title))=LOWER(BTRIM(${p.title})) AND (release_date IS NOT DISTINCT FROM ${p.releaseDate||null}::date OR ${p.releaseDate||null}::date IS NULL OR release_date IS NULL) LIMIT 1`;
+        if (duplicateAlbum.length) return json({ error: "同じアーティスト・アルバム名の作品がすでに登録されています。重複登録を防ぐため承認を中止しました。", duplicate: true, existingId: duplicateAlbum[0].id }, 409);
         const trackIds = [];
         for (const trackTitle of (Array.isArray(p.tracks) ? p.tracks : [])) {
           const duplicate = await sql`SELECT id FROM public.songs WHERE LOWER(title) = LOWER(${trackTitle}) AND artist_id = ${artistId} LIMIT 1`;
