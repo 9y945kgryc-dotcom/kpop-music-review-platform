@@ -2,7 +2,11 @@ function json(data,status=200,headers={}) {
   return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"public, max-age=300, s-maxage=3600",...headers}});
 }
 function clean(value,max=120){return typeof value==="string"?value.trim().slice(0,max):"";}
-function safeArtwork(value){\n  try{const url=new URL(value);return url.protocol==="https:"&&(url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com"))?url.toString():null;}\n  catch{return null;}\n}\nfunction safeHttps(value){
+function safeArtwork(value){
+  try{const url=new URL(value);return url.protocol==="https:"&&(url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com"))?url.toString():null;}
+  catch{return null;}
+}
+function safeHttps(value){
   try{const url=new URL(value);return url.protocol==="https:"&&["music.apple.com","itunes.apple.com"].includes(url.hostname)?url.toString():null;}
   catch{return null;}
 }
