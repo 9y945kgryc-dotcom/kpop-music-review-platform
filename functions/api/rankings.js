@@ -2,7 +2,7 @@ import { json, sqlFor } from "./_lib/auth.js";
 export async function onRequestGet(context){
   try{
     const sql=sqlFor(context);
-    const rows=await sql`SELECT u.id,u.display_name,u.avatar_key,u.avatar_url,
+    const rows=await sql`SELECT u.id,u.display_name,u.avatar_key,
       COUNT(DISTINCT r.id)::int AS review_count,
       COUNT(DISTINCT f.follower_id)::int AS follower_count,
       COUNT(DISTINCT n.id)::int AS received_notifications,
