@@ -48,8 +48,13 @@ export async function onRequestPatch(context){
       const songs=await sql`SELECT s.id,s.title,a.name AS artist_name,s.release_date FROM public.songs s JOIN public.artists a ON a.id=s.artist_id WHERE s.id=${id} LIMIT 1`;
       if(!songs.length)return json({error:"対象楽曲が見つかりません。"},404);
       const song=songs[0];
-      await sql`INSERT INTO public.stagelog_albums (title,artist_name,release_date,release_type,cover_image_url,track_song_ids,apple_music_url,spotify_url)
-        VALUES (${collectionTitle||song.title},${song.artist_name},${song.release_date||null},'single',${artworkUrl},${JSON.stringify([id])}::jsonb,${appleMusicUrl},${spotifyUrl})`;
+      const linked=await sql`SELECT id FROM public.stagelog_albums WHERE track_song_ids @> to_jsonb(ARRAY[${id}]::int[]) ORDER BY id LIMIT 1`;
+      if(linked.length){
+        await sql`UPDATE public.stagelog_albums SET cover_image_url=${artworkUrl},apple_music_url=COALESCE(${appleMusicUrl},apple_music_url),spotify_url=COALESCE(${spotifyUrl},spotify_url) WHERE id=${linked[0].id}`;
+      }else{
+        await sql`INSERT INTO public.stagelog_albums (title,artist_name,release_date,release_type,cover_image_url,track_song_ids,apple_music_url,spotify_url)
+          VALUES (${collectionTitle||song.title},${song.artist_name},${song.release_date||null},'single',${artworkUrl},${JSON.stringify([id])}::jsonb,${appleMusicUrl},${spotifyUrl})`;
+      }
       return json({message:"シングルのジャケット画像を保存しました。",songId:id});
     }
     const rows=await sql`UPDATE public.stagelog_albums
