@@ -27,7 +27,7 @@ export async function currentUser(context) {
   const sql=sqlFor(context);
   const hash=await sha256(token);
   const rows=await sql`
-    SELECT u.id,u.email,u.display_name,u.avatar_url,u.avatar_key,u.bio
+    SELECT u.id,u.email,u.display_name,u.avatar_key,u.bio
     FROM public.user_sessions s JOIN public.users u ON u.id=s.user_id
     WHERE s.token_hash=${hash} AND s.expires_at>NOW() LIMIT 1
   `;
