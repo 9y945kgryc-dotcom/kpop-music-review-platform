@@ -13,7 +13,7 @@ export async function onRequestPatch(context){
     const avatarKey=allowedAvatars.includes(body.avatarKey)?body.avatarKey:"pink-star";
     if(!displayName)return json({error:"表示名を入力してください。"},400);
     const sql=sqlFor(context);
-    const rows=await sql`UPDATE public.users SET display_name=${displayName},bio=${bio},avatar_key=${avatarKey},updated_at=NOW() WHERE id=${user.id} RETURNING id,email,display_name,avatar_url,avatar_key,bio`;
+    const rows=await sql`UPDATE public.users SET display_name=${displayName},bio=${bio},avatar_key=${avatarKey},updated_at=NOW() WHERE id=${user.id} RETURNING id,email,display_name,avatar_key,bio`;
     return json({user:rows[0]});
   }catch(error){console.error("PATCH /api/profile failed:",error);return json({error:"プロフィールを更新できませんでした。"},500);}
 }
