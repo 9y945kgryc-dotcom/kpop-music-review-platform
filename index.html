@@ -65,6 +65,123 @@ input[type=range]{accent-color:#7159a8;cursor:pointer}
 /* Music streaming embeds */
 .music-platforms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0}.music-platform{min-width:0;border:1px solid #e9e5ed;border-radius:16px;padding:14px;background:#faf9fb}.music-platform h4{margin:0 0 10px;font-size:13px}.music-platform iframe{display:block;width:100%;border:0;border-radius:12px;background:#eee}.music-platform .platform-link{display:inline-block;margin-top:9px;color:#65518f;font-size:11px;font-weight:700;text-decoration:none}.music-platform .platform-link:hover{text-decoration:underline}.music-platform-empty{grid-column:1/-1;padding:16px;border-radius:13px;background:#f7f5f9;color:#777180;font-size:12px;line-height:1.7}
 @media(max-width:600px){.music-platforms{grid-template-columns:1fr;gap:10px}.music-platform{padding:11px}}
+
+/* ===== STAGELOG / PREMIUM MUSIC EDITORIAL v1 ===== */
+:root{
+ --bg:#0b0b0e;--paper:#141419;--ink:#f3f0f4;--muted:#a09aa5;--line:#29262e;
+ --pink:#e94b67;--purple:#9b83b8;--lime:#e9e0cf;--dark:#09090c;
+ --shadow:0 18px 55px rgba(0,0,0,.28);--radius:4px;
+ --control-bg:#17161c;--control-border:#38333d;--control-ink:#f3f0f4;--control-muted:#aaa2ae;
+}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:"DM Sans","Noto Sans JP",sans-serif;letter-spacing:.005em}
+.top{
+ min-height:72px;padding:0 max(22px,calc((100% - 1320px)/2));
+ background:rgba(10,10,13,.94);border-bottom:1px solid #ffffff12;
+ box-shadow:none;letter-spacing:-1.4px;font-size:25px
+}
+.top span{color:#e85a70}
+.top small{font-size:8px!important;letter-spacing:2.8px!important;color:#918a96!important}
+.hero{
+ min-height:490px;padding:100px 28px 94px;
+ background:linear-gradient(90deg,rgba(9,9,12,.97) 0%,rgba(9,9,12,.88) 48%,rgba(9,9,12,.38) 100%),radial-gradient(ellipse at 82% 42%,#8f3348 0%,#452330 24%,transparent 52%),#0b0b0e;
+ border-bottom:1px solid #ffffff15
+}
+.hero:before{width:520px;height:520px;right:7%;top:15%;border-color:#ffffff18;transform:rotate(22deg);border-radius:2px}
+.hero:after{width:620px;height:620px;right:3%;top:4%;border-color:#ffffff0b;border-radius:2px;transform:rotate(22deg)}
+.hero .inner{position:relative;z-index:1}
+.eyebrow{color:#e98a98;font-size:9px;letter-spacing:3.4px}
+.hero h1{font-size:clamp(43px,6.4vw,82px);font-weight:800;letter-spacing:-4.2px;line-height:1.04;max-width:790px;margin:22px 0}
+.hero h1 span{background:none!important;color:#e8d9d5!important;-webkit-text-fill-color:#e8d9d5}
+.hero p{color:#bcb5bf;font-size:13px;line-height:2;letter-spacing:.04em}
+.search{max-width:610px;margin-top:34px;padding:6px;background:#17151bd9;border:1px solid #ffffff2a;border-radius:3px;box-shadow:0 12px 35px #0005}
+.search input{color:#fff;font-size:13px;letter-spacing:.03em}
+.search button.primary{background:#e6d9d0;color:#171216;border:0;border-radius:2px;min-width:92px}
+.wrap{max-width:1320px;padding:48px 28px 100px}
+#api-status{color:#938c98;font-size:11px;letter-spacing:.03em;padding:0 0 14px;border-bottom:1px solid var(--line)}
+.tools{gap:9px;margin:20px 0 28px}
+.tools button,.tools select,.tools input{background:#151419!important;color:#e7e1e9!important;border:1px solid #39343d!important;border-radius:3px!important;box-shadow:none!important}
+.tools button:hover{background:#242129!important;border-color:#625562!important}
+.tools button.primary{background:#e6d9d0!important;color:#171216!important;border-color:#e6d9d0!important}
+.browse-heading{margin:34px 0 24px;align-items:flex-end}
+.browse-heading h2{font-size:clamp(27px,3.5vw,40px);font-weight:750;letter-spacing:-1.6px;color:#f4eff3;margin:9px 0 7px}
+.browse-heading p{color:#928b97}
+.browse-heading .eyebrow{color:#d87989}
+.breadcrumb{color:#817985;letter-spacing:.15em}
+.breadcrumb b{color:#e6d9d0}
+.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.song,.panel,.artist-card{
+ background:#141419;border:1px solid #2b2830;border-radius:3px;box-shadow:none;color:#f3eff3;
+ transition:transform .22s ease,border-color .22s ease,background .22s ease
+}
+.song:hover,.artist-card:hover{transform:translateY(-4px);border-color:#66515b;box-shadow:0 16px 35px #0005}
+.art{height:190px;border-radius:0;background:linear-gradient(135deg,#643846,#211d26)!important;color:#f4e9e9;padding:18px;font-size:24px;letter-spacing:-1.2px}
+.song:nth-child(3n+2) .art{background:linear-gradient(135deg,#354a4c,#1d252b)!important}
+.song:nth-child(3n) .art{background:linear-gradient(135deg,#68513c,#2d2428)!important}
+.art:after{border-color:#ffffff25;box-shadow:0 0 0 22px #ffffff08,0 0 0 46px #ffffff05}
+.body,.artist-card-body{padding:18px}
+.body>b,.artist-card-body>b{color:#f5f0f3;font-size:15px;letter-spacing:-.3px}
+.artist,.artist-card-body p{color:#9b939f}
+.score{color:#e8d9d0;font-size:29px}
+.score small{color:#928b97}
+.body button{background:#242128;color:#d9d0d9;border:1px solid #39333e;border-radius:3px}
+.body button:hover{background:#332b35;border-color:#6b5260}
+.body button.detail-open,.artist-card-body button{background:#e6d9d0;color:#171216;border:0;border-radius:3px}
+.body button.detail-open:hover,.artist-card-body button:hover{background:#f3e9e2}
+.panel{padding:26px;margin-top:38px}
+.panel h2{font-size:21px;letter-spacing:-.7px;color:#f3edf2}
+.rank{border-color:#302c34;color:#d7d0d8;padding:16px 2px}
+.rank b{color:#e7d8d0;font-variant-numeric:tabular-nums}
+.compare table td,.compare table th{border-color:#302c34;color:#d5ced8}
+.compare table th{color:#a79daa}
+.artist-art{background:radial-gradient(circle at 75% 20%,hsla(var(--artist-hue),55%,45%,.5),transparent 38%),linear-gradient(135deg,hsl(var(--artist-hue),25%,25%),#17151b)}
+.artist-art span{color:#f5e9ed}
+.artist-art small{color:#d6c7d0}
+.album-art{background:linear-gradient(135deg,#53313c,#211a23)!important}
+.single-art{background:linear-gradient(135deg,#3d5555,#1b282a)!important}
+.track-art{background:linear-gradient(135deg,#49333f,#211a23)!important}
+.modal,.detail-modal{background:#050507e8}
+.dialog,.detail-dialog{background:#151419;color:#f3eff4;border:1px solid #3a343e;border-radius:4px;box-shadow:0 30px 100px #000b}
+.dialog h2,.detail-dialog h3{color:#f5eff4}
+.dialog label{color:#c9c0cb}
+.close{background:#252129;color:#d9d0dc;border:1px solid #3b3540;border-radius:3px}
+.close:hover{background:#332b36}
+.muted,.detail-count{color:#9c94a0}
+.field label{color:#d3cbd5}
+.field .val,.detail-score,.review-entry-score{color:#e5c7c4}
+textarea,.dialog input:not([type=range]),.dialog select,.tools input,.tools select,select,input[type=text],input[type=date],input[type=password]{
+ background:#100f13!important;color:#f0eaf1!important;border:1px solid #3b3540!important;border-radius:3px!important;box-shadow:none!important
+}
+textarea::placeholder,input::placeholder{color:#817985}
+.score-track{background:#302b34}
+.score-fill{background:linear-gradient(90deg,#9e5b69,#e4b9b0)}
+.empty-state,.music-platform-empty{background:#1d1a21;color:#a9a0ad;border:1px solid #332e38;border-radius:3px}
+.music-platform{background:#100f13;border:1px solid #37313b;border-radius:3px;color:#f1eaf1}
+.music-platform h4{color:#eee6ef}
+.music-platform .platform-link{color:#e4a9b0}
+.review-entry{border-color:#38323c}
+.review-entry p{color:#d6ced8}
+#stagelog-member-modal .dialog,#stagelog-public-modal .dialog,#stagelog-ranking-modal .dialog{background:#151419}
+@media(max-width:760px){
+ .top{min-height:62px;padding:10px 16px;font-size:22px}
+ .hero{min-height:420px;padding:68px 20px 64px}
+ .hero h1{font-size:clamp(39px,10vw,58px);letter-spacing:-2.6px}
+ .hero:before{width:300px;height:300px;right:-140px;top:80px}
+ .hero:after{width:390px;height:390px;right:-180px;top:30px}
+ .wrap{padding:28px 16px 76px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .art{height:145px;font-size:18px;padding:12px}
+ .body{padding:12px}
+ .body>b{font-size:13px}
+ .score{font-size:25px}
+ .panel{padding:18px;margin-top:25px}
+ .browse-heading{margin:26px 0 18px}
+ .artist-art{height:130px}
+ .dialog,.detail-dialog{background:#151419}
+}
+@media(max-width:390px){.grid{grid-template-columns:1fr}.art{height:160px}}
+/* ===== end premium editorial layer ===== */
+
 </style></head>
 <body>
 <header class="top">STAGE<span>LOG</span><small style="font-size:9px;letter-spacing:2px;color:#aaa5b4;margin-left:10px;font-weight:700">K-POP CULTURE, SCORED.</small></header>
