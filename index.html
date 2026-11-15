@@ -567,7 +567,7 @@ async function toggleReviewLike(reviewId,liked,songId){
 }
 
 function setMainTab(name){
- const allowed=['discover','ranking','compare','contribute'];
+ const allowed=['discover','ranking','contribute'];
  if(!allowed.includes(name))name='discover';
  allowed.forEach(key=>{const panel=document.getElementById('tab-'+key);if(panel)panel.hidden=key!==name;});
  document.querySelectorAll('[data-main-tab]').forEach(button=>{const active=button.dataset.mainTab===name;button.classList.toggle('active',active);button.setAttribute('aria-selected',active?'true':'false');});
