@@ -9,7 +9,7 @@ function safeUrl(value,kind){
   if(typeof value!=="string"||!value.trim())return null;
   try{
     const u=new URL(value);if(u.protocol!=="https:")return null;
-    if(kind==="artwork")return u.hostname==="mzstatic.com"||u.hostname.endsWith(".mzstatic.com")||u.hostname==="itunes.apple.com"||u.hostname.endsWith(".itunes.apple.com")||u.hostname==="cdn-images.dzcdn.net"||u.hostname.endsWith(".dzcdn.net")?u.toString():null;
+    if(kind==="artwork")return u.hostname==="cdn-images.dzcdn.net"||u.hostname.endsWith(".dzcdn.net")?u.toString():null;
     if(kind==="deezer")return ["www.deezer.com","deezer.com"].includes(u.hostname)&&/^\/(?:[a-z]{2}\/)?(?:track|album)\/\d+\/?$/.test(u.pathname)?u.toString():null;
     return null;
   }catch{return null;}
