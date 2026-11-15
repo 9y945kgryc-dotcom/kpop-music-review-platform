@@ -6,7 +6,9 @@ function safeArtwork(value){
   try{
     const url=new URL(value);
     const appleHost=url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com")||url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com");
-    if(!appleHost||!["https:","http:"].includes(url.protocol))return null;
+    const deezerHost=url.hostname==="cdn-images.dzcdn.net";
+    if(!appleHost&&!deezerHost)return null;
+    if(!["https:","http:"].includes(url.protocol))return null;
     url.protocol="https:";
     return url.toString();
   }catch{return null;}
@@ -14,6 +16,54 @@ function safeArtwork(value){
 function safeHttps(value){
   try{const url=new URL(value);return url.protocol==="https:"&&["music.apple.com","itunes.apple.com"].includes(url.hostname)?url.toString():null;}
   catch{return null;}
+}
+function mapApple(item,type){
+  const artwork=item.artworkUrl512||item.artworkUrl100||item.artworkUrl60||"";
+  const storeUrl=safeHttps(type==="song"?(item.trackViewUrl||item.collectionViewUrl):(item.collectionViewUrl||item.trackViewUrl));
+  const collectionUrl=safeHttps(item.collectionViewUrl);
+  return {
+    source:"Apple Music",
+    kind:type,
+    artistName:clean(item.artistName,160),
+    title:clean(type==="song"?(item.trackName||item.collectionName):(item.collectionName||item.trackName),180),
+    collectionName:clean(item.collectionName,180),
+    releaseDate:typeof item.releaseDate==="string"?item.releaseDate.slice(0,10):"",
+    artworkUrl:safeArtwork(artwork),
+    storeUrl,
+    collectionUrl,
+    trackCount:Number.isFinite(Number(item.trackCount))?Number(item.trackCount):null,
+    country:clean(item.country,8)
+  };
+}
+function mapDeezer(item,type){
+  const album=type==="song"?(item.album||{}):item;
+  const artist=type==="song"?(item.artist||{}):(item.artist||{});
+  const artwork=album.cover_xl||album.cover_big||album.cover_medium||"";
+  const deezerLink=type==="song"?item.link:(item.link||"");
+  const collectionLink=album.link||"";
+  const safeLink=value=>{try{const u=new URL(value);return u.protocol==="https:"&&u.hostname==="www.deezer.com"?u.toString():null}catch{return null}};
+  return {
+    source:"Deezer",
+    kind:type,
+    artistName:clean(artist.name,160),
+    title:clean(type==="song"?item.title:album.title,180),
+    collectionName:clean(album.title,180),
+    releaseDate:"",
+    artworkUrl:safeArtwork(artwork),
+    storeUrl:safeLink(deezerLink),
+    collectionUrl:safeLink(collectionLink),
+    trackCount:Number.isFinite(Number(album.nb_tracks))?Number(album.nb_tracks):null,
+    country:""
+  };
+}
+async function searchDeezer(term,type){
+  const endpoint=type==="song"?"track":"album";
+  const url="https://api.deezer.com/search/"+endpoint+"?"+new URLSearchParams({q:term,limit:"12"}).toString();
+  const response=await fetch(url,{headers:{Accept:"application/json"},cf:{cacheTtl:3600,cacheEverything:true}});
+  if(!response.ok)throw new Error("Deezer Search API HTTP "+response.status);
+  const data=await response.json();
+  if(data.error)throw new Error(data.error.message||"Deezer Search API error");
+  return (Array.isArray(data.data)?data.data:[]).map(item=>mapDeezer(item,type)).filter(item=>item.title&&item.artistName&&item.artworkUrl);
 }
 export async function onRequestGet(context){
   const requestUrl=new URL(context.request.url);
@@ -25,44 +75,27 @@ export async function onRequestGet(context){
   if(!/^[a-z]{2}$/.test(country))return json({error:"国コードが正しくありません。"},400,{"Cache-Control":"no-store"});
   const term=[artist,title].filter(Boolean).join(" ");
   const params=new URLSearchParams({term,country,media:"music",entity:type==="song"?"song":"album",limit:"12",lang:"ja_jp"});
+  let appleError=null;
   try{
     const response=await fetch("https://itunes.apple.com/search?"+params.toString(),{
-      headers:{
-        Accept:"application/json",
-        "User-Agent":"Mozilla/5.0 (compatible; K-REVIEW/1.0; +https://kpop-music-review-platform.pages.dev/)"
-      },
+      headers:{Accept:"application/json","User-Agent":"Mozilla/5.0 (compatible; K-REVIEW/1.0; +https://kpop-music-review-platform.pages.dev/)"},
       cf:{cacheTtl:3600,cacheEverything:true}
     });
-    if(!response.ok){
-      console.error("Apple Search API returned HTTP",response.status,"retry-after:",response.headers.get("retry-after"));
-      const limited=response.status===429;
-      return json({error:limited
-        ?"Apple Musicの検索が混み合っています。1分ほど待って再度お試しください。"
-        :"Appleの音楽カタログ検索に接続できませんでした。時間をおいて再度お試しください。"},
-        limited?503:502,
-        {"Cache-Control":"no-store",...(limited?{"Retry-After":"60"}:{})});
+    if(response.ok){
+      const data=await response.json();
+      const results=(Array.isArray(data.results)?data.results:[]).map(item=>mapApple(item,type)).filter(item=>item.title&&item.artworkUrl);
+      if(results.length)return json({source:"Apple Music",results});
+    }else{
+      appleError="Apple Search API HTTP "+response.status;
+      console.error(appleError,"retry-after:",response.headers.get("retry-after"));
     }
-    const data=await response.json();
-    const results=(Array.isArray(data.results)?data.results:[]).map(item=>{
-      const artwork=item.artworkUrl512||item.artworkUrl100||item.artworkUrl60||"";
-      const storeUrl=safeHttps(type==="song"?(item.trackViewUrl||item.collectionViewUrl):(item.collectionViewUrl||item.trackViewUrl));
-      const collectionUrl=safeHttps(item.collectionViewUrl);
-      return {
-        kind:type,
-        artistName:clean(item.artistName,160),
-        title:clean(type==="song"?(item.trackName||item.collectionName):(item.collectionName||item.trackName),180),
-        collectionName:clean(item.collectionName,180),
-        releaseDate:typeof item.releaseDate==="string"?item.releaseDate.slice(0,10):"",
-        artworkUrl:safeArtwork(artwork),
-        storeUrl,
-        collectionUrl,
-        trackCount:Number.isFinite(Number(item.trackCount))?Number(item.trackCount):null,
-        country:clean(item.country,8)
-      };
-    }).filter(item=>item.title&&item.artworkUrl);
-    return json({source:"Apple Music / iTunes Store",results});
+  }catch(error){appleError=String(error);console.error("Apple Search API failed:",error);}
+  try{
+    const results=await searchDeezer(term,type);
+    if(results.length)return json({source:"Deezer",results,notice:"Apple Music検索が混雑しているため、Deezerのカタログから候補を表示しています。"});
+    return json({source:"Deezer",results:[],notice:"Apple MusicとDeezerの両方で候補が見つかりませんでした。"});
   }catch(error){
-    console.error("GET /api/artwork-search failed:",error);
-    return json({error:"音楽カタログを検索できませんでした。通信状況を確認してください。"},502,{"Cache-Control":"no-store"});
+    console.error("Deezer fallback failed:",error,"Apple result:",appleError);
+    return json({error:"Apple MusicとDeezerのカタログ検索に接続できませんでした。時間をおいて再度お試しください。"},503,{"Cache-Control":"no-store","Retry-After":"60"});
   }
 }
