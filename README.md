@@ -22,7 +22,7 @@ The deployed review flow calls /api/reviews. The Pages Function reads and writes
 - View a song's score breakdown and submitted reviews.
 - Compare up to three songs.
 
-The initial song cards are currently a small frontend seed list. A normalized artist / album / song catalogue is the next data-model milestone.
+The public catalogue is being expanded through a moderated user-submission workflow. Users can submit songs and albums; submissions remain private until an administrator approves them.
 
 ## Review score model
 
@@ -40,11 +40,11 @@ The overall score is entered independently; it is not calculated as the average 
 ## Repository structure
 
 - index.html: current frontend.
-- functions/api/reviews.js: current Neon-backed review API.
+- functions/api/reviews.js: current Neon-backed review API.\n- functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).\n- functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
 - database/schema.sql: proposed normalized relational model for profiles, artists, albums, songs, reviews, and social features.
 - database/catalog-model-v2.sql: additive relationships for album credits, track listings, song versions, and group membership.
 - docs/backend-setup.md: deployment and environment configuration notes.
-- .env.example: names of required environment variables only; never put real secrets here.
+- .env.example: names of required environment variables only; never put real secrets here.\n- database/catalog-submissions.sql: additive tables for pending submissions and approved album metadata.
 
 ## Important database note
 
