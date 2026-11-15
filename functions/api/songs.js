@@ -53,8 +53,7 @@ export async function onRequestGet(context) {
         s.id,
         s.title,
         a.name AS artist,
-        s.spotify_url,
-        s.apple_music_url,
+        s.deezer_url,
         COALESCE(ss.review_count, 0)::int AS review_count,
         ROUND(ss.raw_score, 1) AS raw_score,
         ROUND(
