@@ -24,6 +24,17 @@ export async function onRequestPost(context){
     if(releaseDate&&!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
     if(type==="album"&&tracks.length===0)return json({error:"アルバムには1曲以上の収録曲が必要です。"},400);
     if(deezerUrl){try{const u=new URL(deezerUrl);if(u.protocol!=="https:"||u.hostname!=="www.deezer.com")return json({error:"DeezerのURLが正しくありません。"},400)}catch{return json({error:"DeezerのURLが正しくありません。"},400)}}
+    const existingArtist=await sql`SELECT id FROM public.artists WHERE LOWER(BTRIM(name))=LOWER(BTRIM(${artist})) LIMIT 1`;
+    if(type==="song"&&existingArtist.length){
+      const existingSong=await sql`SELECT id FROM public.songs WHERE artist_id=${existingArtist[0].id} AND LOWER(BTRIM(title))=LOWER(BTRIM(${title})) LIMIT 1`;
+      if(existingSong.length)return json({error:"このアーティスト・曲名の楽曲はすでに登録されています。既存作品を確認してください。",duplicate:true,existingId:existingSong[0].id},409);
+    }
+    if(type==="album"){
+      const existingAlbum=await sql`SELECT id FROM public.stagelog_albums WHERE LOWER(BTRIM(artist_name))=LOWER(BTRIM(${artist})) AND LOWER(BTRIM(title))=LOWER(BTRIM(${title})) AND (release_date IS NOT DISTINCT FROM ${releaseDate||null}::date OR ${releaseDate||null}::date IS NULL OR release_date IS NULL) LIMIT 1`;
+      if(existingAlbum.length)return json({error:"このアーティスト・アルバム名の作品はすでに登録されています。既存アルバムを確認してください。",duplicate:true,existingId:existingAlbum[0].id},409);
+    }
+    const pendingDuplicate=await sql`SELECT id FROM public.catalog_submissions WHERE submission_type=${type} AND status='pending' AND LOWER(BTRIM(payload->>'artist'))=LOWER(BTRIM(${artist})) AND LOWER(BTRIM(payload->>'title'))=LOWER(BTRIM(${title})) AND (${type}='song' OR COALESCE(payload->>'releaseDate','')=COALESCE(${releaseDate},'')) LIMIT 1`;
+    if(pendingDuplicate.length)return json({error:"同じ内容の登録申請がすでに審査待ちです。重ねて申請する必要はありません。",duplicate:true,submissionId:pendingDuplicate[0].id},409);
     const payload={artist,title,collectionTitle,releaseDate:releaseDate||null,note,releaseType,coverImageUrl:coverImageUrl||null,appleMusicUrl:appleMusicUrl||null,deezerUrl:deezerUrl||null,tracks};
     const rows=await sql`INSERT INTO public.catalog_submissions(submission_type,payload,user_id) VALUES(${type},${JSON.stringify(payload)}::jsonb,${user.id}) RETURNING id,submission_type,status,created_at`;
     return json({message:"登録申請を受け付けました。管理者の確認後に公開されます。",submission:rows[0]},201);
