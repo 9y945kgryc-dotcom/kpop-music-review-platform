@@ -6,7 +6,7 @@ async function stagelogRefreshAuth(){
   try{const d=await stagelogApi('/api/auth/me');stagelogUser=d.user||null;}catch{stagelogUser=null;}
   const box=document.getElementById('stagelog-auth');if(!box)return;
   box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button><button onclick="stagelogLogout()">ログアウト</button>':'<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button>';
-  if(stagelogUser)stagelogLoadUnread();
+  if(stagelogUser)stagelogLoadUnread();if(typeof loadReviews==='function')await loadReviews();
 }
 function stagelogModal(){
  let el=document.getElementById('stagelog-member-modal');if(el)return el;
