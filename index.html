@@ -326,6 +326,7 @@ footer.site-footer{margin-top:70px;background:#08080b;border-top:1px solid #2925
 
 
 /* K-REVIEW visual-first music catalogue */
+#songs.track-view{display:block}
 .artwork-sources{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}.artwork-sources a{color:#b7a9c0;font-size:9px;text-decoration:none;border-bottom:1px solid #615767;padding-bottom:2px}.artwork-sources a:hover{color:#fff;border-color:#fff}
 
 .artist-card.visual-card,.album-card.visual-card{background:#151419;border:1px solid #302b35;border-radius:16px;overflow:hidden;min-width:0}
@@ -398,7 +399,7 @@ function render(){
   const trackRows=arr.map((s,i)=>{const cover=albumCover(songAlbum(s));return '<article class="track-row"><div class="track-index">'+String(i+1).padStart(2,'0')+'</div><div class="artwork-frame track-thumb">'+(cover?imageMarkup(cover,s.title+' artwork','catalog-artwork'):'<div class="artwork-placeholder">♪</div>')+'</div><div class="track-main"><b>'+esc(s.title)+'</b><small>'+esc(s.artist)+'</small></div><div class="track-rating"><strong>'+fmtScore(avg(s))+'</strong><small>/ 5.0 · '+s.reviewRows.length+' reviews</small></div><div class="track-actions"><button class="detail-open" onclick="openDetail('+s.id+')">レビューを見る</button><button onclick="openReview('+s.id+')">レビューを書く</button><button onclick="toggleCompare('+s.id+')">'+(selected.includes(s.id)?'比較中':'比較')+'</button></div></article>'}).join('');html+='<div class="track-list">'+(trackRows||'<p class="empty-state">この作品に登録された楽曲はありません。</p>')+'</div>';
  }
  if(browseLevel==='songs'&&browseAlbumId){const currentAlbum=albums.find(a=>Number(a.id)===Number(browseAlbumId));if(currentAlbum){const players=albumMusicPlayers(currentAlbum);if(players)html=html.replace('</section>','</section>')+'<div class="album-streaming">'+players+'</div>';}}
- box.innerHTML=html;
+ box.classList.toggle('track-view',browseLevel==='songs');box.innerHTML=html;
  let ranked=[...songs].filter(s=>avg(s)!==null).sort((a,b)=>avg(b)-avg(a)).slice(0,5);document.getElementById('ranking').innerHTML=ranked.length?ranked.map((s,i)=>'<div class="rank"><span>'+(i+1)+'. '+esc(s.title)+' — '+esc(s.artist)+'</span><b>'+fmtScore(avg(s))+'</b></div>').join(''):'<p class="muted">レビューが集まるとランキングが表示されます。</p>';renderCompare();
 }
 function spotifyEmbedUrl(value){try{const u=new URL(value);if(u.hostname!=='open.spotify.com')return '';const m=u.pathname.match(/^\/(track|album)\/([A-Za-z0-9]+)\/?$/);return m?'https://open.spotify.com/embed/'+m[1]+'/'+m[2]+'?utm_source=generator':''}catch{return ''}}
