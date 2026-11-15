@@ -19,7 +19,7 @@ export async function onRequestGet(context) {
           r.song_id,
           (r.ratings->>6)::numeric AS score,
           (COALESCE(t.trust_weight, 1.000)::numeric *
-            (1 + LEAST(0.500, LN(1 + COALESCE(l.received_likes, 0)) * 0.080))) AS weight
+            (1 + LEAST(0.500, LN(1 + COALESCE(l.received_likes, 0)) * 0.080))::numeric) AS weight
         FROM public.song_reviews r
         LEFT JOIN public.user_rating_trust t ON t.user_id = r.user_id
         LEFT JOIN (
