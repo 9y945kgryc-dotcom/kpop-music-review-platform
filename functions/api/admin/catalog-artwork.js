@@ -8,7 +8,7 @@ function disabledResponse(){return json({error:"ジャケット補完機能は�
 function safeUrl(value,kind){
   if(typeof value!=="string"||!value.trim())return null;
   try{const u=new URL(value);if(u.protocol!=="https:")return null;
-    if(kind==="artwork")return u.hostname==="mzstatic.com"||u.hostname.endsWith(".mzstatic.com")||u.hostname==="itunes.apple.com"||u.hostname.endsWith(".itunes.apple.com")?u.toString():null;
+    if(kind==="artwork")return u.hostname==="mzstatic.com"||u.hostname.endsWith(".mzstatic.com")||u.hostname==="itunes.apple.com"||u.hostname.endsWith(".itunes.apple.com")||u.hostname==="cdn-images.dzcdn.net"?u.toString():null;
     if(kind==="apple")return ["music.apple.com","itunes.apple.com"].includes(u.hostname)?u.toString():null;
     if(kind==="spotify")return u.hostname==="open.spotify.com"?u.toString():null;
     return null;
