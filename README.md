@@ -32,13 +32,13 @@ The catalogue uses the existing Neon artists, songs and stagelog_albums tables. 
 ### Artwork search and catalogue presentation
 
 - Artist cards use available release artwork as their visual identity.
-- Album and track pages display square Apple Music / iTunes catalogue artwork when available.
-- The submission form can search the Apple music catalogue by artist and release title, preview candidate covers, and attach the selected image and store link to the pending submission.
+- Album and track pages display square artwork returned by the Deezer catalogue.
+- The submission form searches the Deezer catalogue by artist, album, or track, previews candidate covers, and attaches the selected artwork and Deezer URL to the pending submission.
 - The administrator moderation screen previews submitted artwork before approval.
-- Administrators can find existing albums and standalone songs without artwork, search Apple catalogue candidates, and save a manually verified match.
-- Apple artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
+- Administrators can find existing albums and standalone songs without artwork, search Deezer candidates, and save a manually verified artwork and Deezer player link.
+- Deezer artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
 - No database migration is required. Existing album artwork and platform URLs are stored in `stagelog_albums`; standalone song artwork is represented as a single-release row linked to the existing song ID.
-- Apple Search API results are cached for five minutes in clients and advertise a one-hour shared cache lifetime. Apple documents an approximate 20-request-per-minute limit, which may change.
+- Deezer catalogue search results are cached for five minutes in clients and served through Cloudflare's shared cache.
 - Existing-artwork backfill is disabled by default. It is available only when `STAGELOG_ARTWORK_BACKFILL_ENABLED=true` is set in the intended Cloudflare Pages environment and the request also has a valid `STAGELOG_ADMIN_TOKEN`. Enable it in Production only after the admin token is configured.
 
 ## Review score model
@@ -88,6 +88,6 @@ Set DATABASE_URL in Cloudflare Pages → Settings → Variables and Secrets for 
 6. Verify sign-in, review create/edit/delete, likes, catalogue submissions, admin moderation, and Apple artwork search against the Production URL.
 7. Keep the legacy `song_reviews` table and numeric song IDs. The normalized schema remains a future migration target, not a replacement.
 
-## Commercial use
+Legacy `spotify_url` and `apple_music_url` database columns are intentionally retained during this migration to avoid deleting historical values. The application no longer reads, writes, searches, or embeds those providers. New active links are stored in `deezer_url` on songs and albums.\n\n## Commercial use
 
 Check the current terms and pricing of Cloudflare and Neon before public or commercial operation. Choose plans appropriate to expected traffic, data retention, and business use.
