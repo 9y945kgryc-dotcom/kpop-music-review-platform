@@ -38,7 +38,32 @@ async function stagelogFavorite(type,id,remove=false){
   if(!r.ok){const d=await r.json();alert(d.error||'更新できませんでした。');return;}await stagelogOpenPage();
 }
 async function stagelogLogout(){await fetch('/api/auth/logout',{method:'POST'});stagelogUser=null;await stagelogRefreshAuth();}
+
+function stagelogDecorateFavorites(){
+  const songBox=document.getElementById('songs');
+  if(songBox) songBox.querySelectorAll('article.song').forEach(card=>{
+    if(card.dataset.favoriteReady)return;
+    const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'';
+    const item=songs?.find(x=>x.title===title&&x.artist===artist);if(!item)return;
+    const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('song',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';
+  });
+  const albumBox=document.getElementById('albums');
+  if(albumBox) albumBox.querySelectorAll('article.song').forEach(card=>{
+    if(card.dataset.favoriteReady)return;
+    const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'';
+    const item=albums?.find(x=>x.title===title&&x.artist_name===artist);if(!item)return;
+    const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('album',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';
+  });
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
+  const originalReview=window.openReview,originalCatalog=window.openCatalog;
+  if(originalReview)window.openReview=function(...args){if(!stagelogUser){if(confirm('レビュー投稿にはGoogleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}return originalReview(...args);};
+  if(originalCatalog)window.openCatalog=function(...args){if(!stagelogUser){if(confirm('登録申請にはGoogleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}return originalCatalog(...args);};
+  const observer=new MutationObserver(stagelogDecorateFavorites);
+  ['songs','albums'].forEach(id=>{const node=document.getElementById(id);if(node)observer.observe(node,{childList:true,subtree:true});});
+  setTimeout(stagelogDecorateFavorites,500);
+
   const h=document.querySelector('.top');if(h){const a=document.createElement('span');a.id='stagelog-auth';a.style.cssText='float:right;letter-spacing:0';h.appendChild(a);}
   stagelogRefreshAuth();
 });
