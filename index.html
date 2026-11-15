@@ -551,13 +551,35 @@ async function searchAppleCatalog(event){
  if(q.length<2){status.textContent='2文字以上入力してください。';input.focus();return;}
  button.disabled=true;button.innerHTML='<span>検索中</span><b>…</b>';status.textContent='Apple Musicのカタログを検索しています…';box.innerHTML='<div class="catalog-loading">Apple Musicに接続しています</div>';
  try{
-  const params=new URLSearchParams({q,type,country:'jp'}),res=await fetch('/api/music-search?'+params.toString(),{headers:{Accept:'application/json'}});
-  const data=await res.json();
-  if(!res.ok)throw new Error(data.error||'Apple Music検索に失敗しました。');
-  appleCatalogResults=data.results||[];
+  const cacheKey='kreview-apple-search-v1:'+['jp',type,q.toLocaleLowerCase()].join(':');
+  let cached=null;
+  try{const saved=sessionStorage.getItem(cacheKey);if(saved){const parsed=JSON.parse(saved);if(parsed.savedAt>Date.now()-5*60*1000)cached=parsed.results;}}catch{}
+  let results=cached;
+  if(!results){
+   const params=new URLSearchParams({term:q,country:'jp',media:'music',limit:'30',lang:'ja_jp'});
+   if(type==='song')params.set('entity','song');else if(type==='album')params.set('entity','album');else if(type==='artist')params.set('entity','musicArtist');
+   let response;
+   try{response=await fetch('https://itunes.apple.com/search?'+params.toString(),{headers:{Accept:'application/json'}});}
+   catch(directError){const fallbackParams=new URLSearchParams({q,type,country:'jp'});response=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});}
+   if(!response.ok&&response.status!==200){
+    const fallbackParams=new URLSearchParams({q,type,country:'jp'});
+    const fallback=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});
+    if(!fallback.ok){const errorData=await fallback.json().catch(()=>({}));throw new Error(errorData.error||'Apple Music検索に接続できませんでした。少し時間をおいて再度お試しください。');}
+    const fallbackData=await fallback.json();
+    results=fallbackData.results||[];
+   }else{
+    const data=await response.json();
+    results=(data.results||[]).map(x=>{
+     const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
+     return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?(x.artistName||''):kind==='album'?(x.collectionName||''):(x.trackName||''),albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl:x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'',storeUrl:x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'',previewUrl:x.previewUrl||null,trackCount:x.trackCount||null,primaryGenre:x.primaryGenreName||'',trackId:x.trackId||null,collectionId:x.collectionId||null};
+    }).filter(x=>x.title);
+   }
+   try{sessionStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),results}));}catch{}
+  }
+  appleCatalogResults=results||[];
   status.textContent='Apple Music検索結果 '+appleCatalogResults.length+' 件';
-  box.innerHTML=appleCatalogResults.length?appleCatalogResults.map((x,i)=>'<article class="catalog-result">'+(x.artworkUrl?'<img src="'+esc(x.artworkUrl)+'" alt="" loading="lazy">':'<div class="catalog-result-cover">♪</div>')+'<div class="catalog-result-main"><div class="catalog-result-title">'+esc(x.title)+'</div><div class="catalog-result-meta">'+esc(x.kind==='artist'?'アーティスト':x.artistName)+(x.kind==='song'&&x.albumTitle?' · '+esc(x.albumTitle):'')+(x.releaseDate?' · '+esc(x.releaseDate.slice(0,10)):'')+'</div><div class="catalog-result-tags"><span class="catalog-result-tag '+(x.source==='Apple Music'?'apple':'')+'">'+esc((x.source||'APPLE MUSIC').toUpperCase())+'</span><span class="catalog-result-tag">'+esc(x.kind==='artist'?'ARTIST':x.kind==='album'?'ALBUM':'TRACK')+'</span></div><div class="catalog-result-actions">'+(x.storeUrl?'<a href="'+esc(x.storeUrl)+'" target="_blank" rel="noopener noreferrer">'+(x.source==='Apple Music'?'Apple Musicで開く':'配信ページを開く')+' ↗</a>':'')+(x.appleSearchUrl?'<a href="'+esc(x.appleSearchUrl)+'" target="_blank" rel="noopener noreferrer">Apple Musicで探す ↗</a>':'')+(x.kind!=='artist'?'<button class="register" type="button" onclick="addAppleResultToCatalog('+i+')">K-REVIEWに登録申請</button>':'')+'</div>'+(x.previewUrl?'<audio controls preload="none" src="'+esc(x.previewUrl)+'" aria-label="'+esc(x.title)+'のプレビュー"></audio>':'')+'</div></article>').join(''):'<div class="catalog-empty">該当する作品が見つかりませんでした。<br>曲名の一部や英語表記でもう一度検索してください。</div>';
- }catch(e){status.textContent=e.message;box.innerHTML='<div class="catalog-empty">検索結果を取得できませんでした。時間をおいて再度お試しください。</div>';}
+  box.innerHTML=appleCatalogResults.length?appleCatalogResults.map((x,i)=>'<article class="catalog-result">'+(x.artworkUrl?'<img src="'+esc(x.artworkUrl)+'" alt="" loading="lazy">':'<div class="catalog-result-cover">♪</div>')+'<div class="catalog-result-main"><div class="catalog-result-title">'+esc(x.title)+'</div><div class="catalog-result-meta">'+esc(x.kind==='artist'?'アーティスト':x.artistName)+(x.kind==='song'&&x.albumTitle?' · '+esc(x.albumTitle):'')+(x.releaseDate?' · '+esc(x.releaseDate.slice(0,10)):'')+'</div><div class="catalog-result-tags"><span class="catalog-result-tag apple">APPLE MUSIC</span><span class="catalog-result-tag">'+esc(x.kind==='artist'?'ARTIST':x.kind==='album'?'ALBUM':'TRACK')+'</span></div><div class="catalog-result-actions">'+(x.storeUrl?'<a href="'+esc(x.storeUrl)+'" target="_blank" rel="noopener noreferrer">Apple Musicで開く ↗</a>':'')+(x.kind!=='artist'?'<button class="register" type="button" onclick="addAppleResultToCatalog('+i+')">K-REVIEWに登録申請</button>':'')+'</div>'+(x.previewUrl?'<audio controls preload="none" src="'+esc(x.previewUrl)+'" aria-label="'+esc(x.title)+'のプレビュー"></audio>':'')+'</div></article>').join(''):'<div class="catalog-empty">該当する作品が見つかりませんでした。<br>曲名の一部や英語表記でもう一度検索してください。</div>';
+ }catch(e){status.textContent=e.message;box.innerHTML='<div class="catalog-empty">'+esc(e.message)+'</div>';}
  finally{button.disabled=false;button.innerHTML='<span>検索する</span><b>→</b>';}
 }
 function addAppleResultToCatalog(index){
