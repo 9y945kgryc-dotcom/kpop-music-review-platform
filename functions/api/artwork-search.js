@@ -26,8 +26,22 @@ export async function onRequestGet(context){
   const term=[artist,title].filter(Boolean).join(" ");
   const params=new URLSearchParams({term,country,media:"music",entity:type==="song"?"song":"album",limit:"12",lang:"ja_jp"});
   try{
-    const response=await fetch("https://itunes.apple.com/search?"+params.toString(),{headers:{Accept:"application/json"}});
-    if(!response.ok)return json({error:"Appleの音楽カタログ検索に失敗しました。時間をおいて再度お試しください。"},502,{"Cache-Control":"no-store"});
+    const response=await fetch("https://itunes.apple.com/search?"+params.toString(),{
+      headers:{
+        Accept:"application/json",
+        "User-Agent":"Mozilla/5.0 (compatible; K-REVIEW/1.0; +https://kpop-music-review-platform.pages.dev/)"
+      },
+      cf:{cacheTtl:3600,cacheEverything:true}
+    });
+    if(!response.ok){
+      console.error("Apple Search API returned HTTP",response.status,"retry-after:",response.headers.get("retry-after"));
+      const limited=response.status===429;
+      return json({error:limited
+        ?"Apple Musicの検索が混み合っています。1分ほど待って再度お試しください。"
+        :"Appleの音楽カタログ検索に接続できませんでした。時間をおいて再度お試しください。"},
+        limited?503:502,
+        {"Cache-Control":"no-store",...(limited?{"Retry-After":"60"}:{})});
+    }
     const data=await response.json();
     const results=(Array.isArray(data.results)?data.results:[]).map(item=>{
       const artwork=item.artworkUrl512||item.artworkUrl100||item.artworkUrl60||"";

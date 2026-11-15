@@ -28,7 +28,8 @@ export async function onRequestGet(context) {
           JOIN public.song_reviews r2 ON r2.id = l2.review_id
           GROUP BY r2.user_id
         ) l ON l.user_id = r.user_id
-        WHERE r.ratings ? '6'
+        WHERE jsonb_typeof(r.ratings) = 'array'
+          AND jsonb_array_length(r.ratings) = 7
           AND (r.ratings->>6) ~ '^[0-5]([.][0-9]+)?$'
       ),
       global_baseline AS (

@@ -5,7 +5,7 @@ export async function onRequestPost(context){
     const body=await context.request.json(),reviewId=Number(body.reviewId);
     if(!Number.isSafeInteger(reviewId)||reviewId<1)return json({error:"レビューIDが不正です。"},400);
     const sql=sqlFor(context);
-    const rows=await sql`INSERT INTO public.review_likes(review_id,user_id) SELECT r.id,${user.id} FROM public.song_reviews r WHERE r.id=${reviewId} AND r.user_id<>${user.id} ON CONFLICT(review_id,user_id) DO NOTHING RETURNING review_id`;
+    const rows=await sql`INSERT INTO public.review_likes(review_id,user_id) SELECT r.id,${user.id} FROM public.song_reviews r WHERE r.id=${reviewId} AND (r.user_id IS NULL OR r.user_id<>${user.id}) ON CONFLICT(review_id,user_id) DO NOTHING RETURNING review_id`;
     if(!rows.length){
       const exists=await sql`SELECT id FROM public.song_reviews WHERE id=${reviewId} LIMIT 1`;
       if(!exists.length)return json({error:"レビューが見つかりません。"},404);
