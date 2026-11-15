@@ -17,12 +17,12 @@ export async function onRequestPost(context){
     if(Number(recent[0]?.count||0)>=5)return json({error:"登録申請は1時間に5件までです。時間をおいて再度お試しください。"},429);
     if(!type||!artist||!title)return json({error:"種別・アーティスト名・タイトルは必須です。"},400);
     if(coverImageUrl&&!isAllowedArtworkUrl(coverImageUrl))return json({error:"ジャケット画像はDeezerの検索候補から選択してください。"},400);
-    if(releaseDate&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
+    if(releaseDate&&!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
     if(type==="album"&&tracks.length===0)return json({error:"アルバムには1曲以上の収録曲が必要です。"},400);
     if(deezerUrl){
       try{
-        const u=new URL(deezerUrl),expected=type==="album"?"album":"track";
-        if(u.protocol!=="https:"||!["www.deezer.com","deezer.com"].includes(u.hostname)||!new RegExp("^/(?:[a-z]{2}/)?"+expected+"/\\\\d+/?$").test(u.pathname))return json({error:"Deezerの作品URLが正しくありません。"},400);
+        const u=new URL(deezerUrl),expected=type==="album"?"album":"track",match=u.pathname.match(/^\/(?:[a-z]{2}\/)?(track|album)\/\d+\/?$/);
+        if(u.protocol!=="https:"||!["www.deezer.com","deezer.com"].includes(u.hostname)||!match||match[1]!==expected)return json({error:"Deezerの作品URLが正しくありません。"},400);
       }catch{return json({error:"Deezerの作品URLが正しくありません。"},400);}
     }
     if(type==="album"){
