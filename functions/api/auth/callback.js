@@ -2,7 +2,7 @@ import { json, cookies, cookie, clearCookie, randomToken, sha256, sqlFor } from 
 export async function onRequestGet({request,env}){
   const c=cookies(request),u=new URL(request.url),code=u.searchParams.get("code"),state=u.searchParams.get("state");
   const clean=[clearCookie("stagelog_oauth_state"),clearCookie("stagelog_oauth_nonce"),clearCookie("stagelog_pkce")];
-  const fail=(message)=>new Response(message,{status:400,headers:{"Content-Type":"text/plain; charset=utf-8","Set-Cookie":clean}});
+  const fail=(message)=>{const headers=new Headers({"Content-Type":"text/plain; charset=utf-8"});for(const item of clean)headers.append("Set-Cookie",item);return new Response(message,{status:400,headers});};
   if(u.searchParams.has("error")) return fail("Googleログインがキャンセルされました。サイトに戻って再度お試しください。");
   if(!code||!state||state!==c.stagelog_oauth_state||!c.stagelog_pkce||!c.stagelog_oauth_nonce) return fail("認証情報を確認できませんでした。最初からログインしてください。");
   try{
