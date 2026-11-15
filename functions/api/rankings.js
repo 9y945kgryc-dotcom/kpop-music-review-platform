@@ -16,13 +16,12 @@ export async function onRequestGet(context){
       COALESCE(rc.review_count,0)::int AS review_count,
       COALESCE(fc.follower_count,0)::int AS follower_count,
       COALESCE(l.received_likes,0)::int AS received_likes,
-      ROUND((1+LEAST(0.500,LN(1+COALESCE(l.received_likes,0))*0.080))::numeric,3) AS like_coefficient,
       rc.last_review_at
     FROM public.users u
     LEFT JOIN review_counts rc ON rc.user_id=u.id
     LEFT JOIN follow_counts fc ON fc.following_id=u.id
     LEFT JOIN likes l ON l.user_id=u.id
     ORDER BY received_likes DESC,review_count DESC,follower_count DESC,u.created_at ASC LIMIT 50`;
-    return json(rows.map((u,i)=>({...u,rank:i+1,activity_score:Number(u.review_count)*3+Number(u.follower_count)+Number(u.received_likes)*2})));
+    return json(rows.map((u,i)=>({...u,rank:i+1})));
   }catch(e){console.error("GET /api/rankings",e);return json({error:"ランキングを取得できませんでした。"},500);}
 }
