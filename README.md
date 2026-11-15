@@ -24,6 +24,17 @@ The deployed review flow calls /api/reviews. The Pages Function reads and writes
 
 The public catalogue is being expanded through a moderated user-submission workflow. Users can submit songs and albums; submissions remain private until an administrator approves them.
 
+### Artwork search and catalogue presentation
+
+- Artist cards use available release artwork as their visual identity.
+- Album and track pages display square Apple Music / iTunes catalogue artwork when available.
+- The submission form can search the Apple music catalogue by artist and release title, preview candidate covers, and attach the selected image and store link to the pending submission.
+- The administrator moderation screen previews submitted artwork before approval.
+- Administrators can find existing albums and standalone songs without artwork, search Apple catalogue candidates, and save a manually verified match.
+- Apple artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
+- No database migration is required. Existing album artwork and platform URLs are stored in `stagelog_albums`; standalone song artwork is represented as a single-release row linked to the existing song ID.
+- Apple Search API results are cached for five minutes in clients and advertise a one-hour shared cache lifetime. Apple documents an approximate 20-request-per-minute limit, which may change.
+
 ## Review score model
 
 Six independently rated categories (0.0–5.0, step 0.1):
@@ -40,11 +51,16 @@ The overall score is entered independently; it is not calculated as the average 
 ## Repository structure
 
 - index.html: current frontend.
-- functions/api/reviews.js: current Neon-backed review API.\n- functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).\n- functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
+- functions/api/reviews.js: current Neon-backed review API.
+- functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).
+- functions/api/artwork-search.js: Apple Music / iTunes Store artwork search endpoint.
+- functions/api/admin/catalog-artwork.js: token-protected existing artwork backfill endpoint.
+- functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
 - database/schema.sql: proposed normalized relational model for profiles, artists, albums, songs, reviews, and social features.
 - database/catalog-model-v2.sql: additive relationships for album credits, track listings, song versions, and group membership.
 - docs/backend-setup.md: deployment and environment configuration notes.
-- .env.example: names of required environment variables only; never put real secrets here.\n- database/catalog-submissions.sql: additive tables for pending submissions and approved album metadata.
+- .env.example: names of required environment variables only; never put real secrets here.
+- database/catalog-submissions.sql: additive tables for pending submissions and approved album metadata.
 
 ## Important database note
 
