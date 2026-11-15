@@ -2,7 +2,7 @@ function json(data,status=200,headers={}) {
   return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"public, max-age=300, s-maxage=3600",...headers}});
 }
 function clean(value,max=120){return typeof value==="string"?value.trim().slice(0,max):"";}
-function safeHttps(value){
+function safeArtwork(value){\n  try{const url=new URL(value);return url.protocol==="https:"&&(url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com"))?url.toString():null;}\n  catch{return null;}\n}\nfunction safeHttps(value){
   try{const url=new URL(value);return url.protocol==="https:"&&["music.apple.com","itunes.apple.com"].includes(url.hostname)?url.toString():null;}
   catch{return null;}
 }
@@ -30,7 +30,7 @@ export async function onRequestGet(context){
         title:clean(type==="song"?(item.trackName||item.collectionName):(item.collectionName||item.trackName),180),
         collectionName:clean(item.collectionName,180),
         releaseDate:typeof item.releaseDate==="string"?item.releaseDate.slice(0,10):"",
-        artworkUrl:safeHttps(artwork),
+        artworkUrl:safeArtwork(artwork),
         storeUrl,
         collectionUrl,
         trackCount:Number.isFinite(Number(item.trackCount))?Number(item.trackCount):null,
