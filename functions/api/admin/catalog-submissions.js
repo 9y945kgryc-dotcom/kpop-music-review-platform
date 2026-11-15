@@ -12,6 +12,15 @@ function getSql(context) {
   if (!context.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured");
   return neon(context.env.DATABASE_URL);
 }
+function safeDeezerUrl(value, expectedKind) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || !["www.deezer.com", "deezer.com"].includes(url.hostname)) return null;
+    const match = url.pathname.match(/^\/(?:[a-z]{2}\/)?(track|album)\/(\d+)\/?$/);
+    return match && (!expectedKind || match[1] === expectedKind) ? url.toString() : null;
+  } catch { return null; }
+}
 
 export async function onRequestGet(context) {
   if (!authorized(context)) return json({ error: "管理者認証に失敗しました。" }, 401);
@@ -47,8 +56,7 @@ export async function onRequestPatch(context) {
     const p = submission.payload || {};
 
     if (decision === "approve") {
-      // The live prototype schema is artists(id,name) and songs(id,title,artist_id).
-      // Reuse an existing artist name to avoid duplicate artist records.
+      const deezerUrl = safeDeezerUrl(p.deezerUrl, submission.submission_type === "album" ? "album" : "track");
       const found = await sql`SELECT id FROM public.artists WHERE LOWER(name) = LOWER(${p.artist}) LIMIT 1`;
       let artistId;
       if (found.length) artistId = found[0].id;
@@ -60,11 +68,10 @@ export async function onRequestPatch(context) {
       if (submission.submission_type === "song") {
         const duplicate = await sql`SELECT id FROM public.songs WHERE LOWER(title) = LOWER(${p.title}) AND artist_id = ${artistId} LIMIT 1`;
         if (duplicate.length) return json({ error: "同じアーティスト・曲名の楽曲がすでに登録されています。重複を確認してください。" }, 409);
-        const insertedSong = await sql`INSERT INTO public.songs (title, artist_id, spotify_url, apple_music_url) VALUES (${p.title}, ${artistId}, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null}) RETURNING id`;
-        // A standalone song can still use its Apple Music release artwork in the existing album catalogue.
+        const insertedSong = await sql`INSERT INTO public.songs (title, artist_id, deezer_url) VALUES (${p.title}, ${artistId}, ${deezerUrl}) RETURNING id`;
         if (p.coverImageUrl) {
-          await sql`INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url)
-            VALUES (${p.collectionTitle || p.title}, ${p.artist}, ${p.releaseDate || null}, 'single', ${p.coverImageUrl}, ${JSON.stringify([insertedSong[0].id])}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})`;
+          await sql`INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, deezer_url)
+            VALUES (${p.collectionTitle || p.title}, ${p.artist}, ${p.releaseDate || null}, 'single', ${p.coverImageUrl}, ${JSON.stringify([insertedSong[0].id])}::jsonb, ${deezerUrl})`;
         }
       } else {
         const duplicateAlbum = await sql`SELECT id FROM public.stagelog_albums WHERE LOWER(BTRIM(artist_name))=LOWER(BTRIM(${p.artist})) AND LOWER(BTRIM(title))=LOWER(BTRIM(${p.title})) AND (release_date IS NOT DISTINCT FROM ${p.releaseDate||null}::date OR ${p.releaseDate||null}::date IS NULL OR release_date IS NULL) LIMIT 1`;
@@ -79,8 +86,8 @@ export async function onRequestPatch(context) {
           }
         }
         await sql`
-          INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url)
-          VALUES (${p.title}, ${p.artist}, ${p.releaseDate || null}, ${p.releaseType || "album"}, ${p.coverImageUrl || null}, ${JSON.stringify(trackIds)}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})
+          INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, deezer_url)
+          VALUES (${p.title}, ${p.artist}, ${p.releaseDate || null}, ${p.releaseType || "album"}, ${p.coverImageUrl || null}, ${JSON.stringify(trackIds)}::jsonb, ${deezerUrl})
         `;
       }
     }
