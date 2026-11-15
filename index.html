@@ -182,11 +182,91 @@ textarea::placeholder,input::placeholder{color:#817985}
 @media(max-width:390px){.grid{grid-template-columns:1fr}.art{height:160px}}
 /* ===== end premium editorial layer ===== */
 
+
+/* ===== STAGELOG editorial layout refinement v2 ===== */
+.top{gap:0;position:sticky;z-index:30}
+.top .site-nav{display:flex;align-items:center;gap:24px;margin-left:42px;letter-spacing:.12em;order:2}
+.top .site-nav a{color:#aaa1ab;text-decoration:none;font-size:9px;font-weight:800;letter-spacing:2px;transition:color .2s}
+.top .site-nav a:hover{color:#f0c9c7}
+.top #stagelog-auth{order:4}
+.top>span:last-child{order:3}
+.hero{min-height:530px;display:flex;align-items:center;position:relative}
+.hero .inner{width:100%;max-width:1320px}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #e98a9840;background:#e98a9810}
+.hero h1{max-width:850px;font-size:clamp(48px,7vw,92px);letter-spacing:-.055em}
+.hero p{max-width:570px}
+.search{max-width:650px}
+.stats-strip{max-width:1320px;margin:-1px auto 0;padding:22px 28px;display:grid;grid-template-columns:repeat(3,1fr);background:#111115;border-bottom:1px solid #ffffff14}
+.stat-item{padding:2px 28px;border-right:1px solid #ffffff17;display:flex;align-items:baseline;gap:12px}
+.stat-item:first-child{padding-left:0}.stat-item:last-child{border:0}
+.stat-item strong{font-size:28px;letter-spacing:-1px;color:#f0d6d1;font-variant-numeric:tabular-nums}
+.stat-item span{font-size:9px;letter-spacing:2px;color:#928994;font-weight:800}
+.wrap{padding-top:42px}
+#api-status{display:flex;align-items:center;gap:10px;min-height:42px;padding:10px 14px;border:1px solid #38323c;background:#121116;border-radius:3px}
+#api-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#d2a9a0;box-shadow:0 0 12px #d2a9a066;flex:none}
+.tools{padding:4px 0 20px;border-bottom:1px solid #28252d}
+.tools button{border-radius:3px!important}
+.browse-heading{margin:42px 0 24px}
+.browse-heading h2{font-size:clamp(32px,4vw,48px);letter-spacing:-.055em}
+.grid{grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:18px}
+.artist-card,.song{border-radius:3px}
+.artist-art{height:190px}
+.artist-card-body{padding:19px}
+.artist-card-body>b{font-size:18px;letter-spacing:-.04em}
+.artist-card-body p{font-size:10px;letter-spacing:.05em}
+.artist-card-body button{border-radius:2px!important;letter-spacing:.04em}
+.panel{position:relative;border-radius:3px;padding:30px;margin-top:42px}
+.panel h2{font-size:25px;letter-spacing:-.05em}
+.panel h2:before{content:"";display:inline-block;width:22px;height:2px;background:#df7b89;vertical-align:middle;margin-right:12px}
+.rank{padding:17px 3px}
+.rank b{color:#f0d6d1}
+.compare{overflow:hidden}
+.compare table{min-width:520px}
+.compare td,.compare th{padding:15px 12px}
+footer.site-footer{margin-top:70px;background:#08080b;border-top:1px solid #29252d;padding:42px 28px 32px}
+.footer-inner{max-width:1320px;margin:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.footer-brand{font-size:22px;font-weight:900;letter-spacing:-1.4px;color:#f5f0f4}
+.footer-brand span{color:#e85a70}
+.footer-caption{margin-top:8px;font-size:9px;letter-spacing:2.5px;color:#817985}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:10px;color:#a79eaa;text-decoration:none;letter-spacing:.08em}
+.footer-links a:hover{color:#f0c9c7}
+.footer-note{max-width:1320px;margin:28px auto 0;padding-top:18px;border-top:1px solid #ffffff12;color:#6f6874;font-size:10px;line-height:1.8}
+@media(max-width:760px){
+ .top{padding:10px 15px;min-height:62px;flex-wrap:wrap;row-gap:5px}
+ .top .site-nav{order:5;width:100%;margin:5px 0 0;gap:18px;padding-top:8px;border-top:1px solid #ffffff12}
+ .top .site-nav a{font-size:8px}
+ .top #stagelog-auth{order:3;margin-left:auto}
+ .top>span:last-child{order:4}
+ .hero{min-height:460px;padding:68px 20px 62px}
+ .hero h1{font-size:clamp(43px,11vw,62px);letter-spacing:-.06em}
+ .stats-strip{padding:17px 16px;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .stat-item{padding:2px 10px;display:flex;flex-direction:column;gap:3px}
+ .stat-item:first-child{padding-left:0}
+ .stat-item strong{font-size:23px}
+ .stat-item span{font-size:7px;letter-spacing:1px}
+ .wrap{padding:27px 16px 70px}
+ .browse-heading{margin:30px 0 17px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+ .artist-art{height:135px}
+ .artist-card-body{padding:13px}
+ .artist-card-body>b{font-size:14px}
+ .panel{padding:19px;margin-top:27px}
+ .panel h2{font-size:20px}
+ .footer-inner{align-items:flex-start;flex-direction:column}
+ footer.site-footer{padding:32px 18px 24px}
+ .footer-links{gap:15px}
+}
+@media(max-width:390px){.stats-strip{padding-left:12px;padding-right:12px}.stat-item strong{font-size:20px}.grid{grid-template-columns:1fr}}
+/* ===== end editorial layout refinement ===== */
+
 </style></head>
 <body>
-<header class="top">STAGE<span>LOG</span><small style="font-size:9px;letter-spacing:2px;color:#aaa5b4;margin-left:10px;font-weight:700">K-POP CULTURE, SCORED.</small></header>
+<header class="top">STAGE<span>LOG</span><small style="font-size:9px;letter-spacing:2px;color:#aaa5b4;margin-left:10px;font-weight:700">K-POP CULTURE, SCORED.</small><nav class="site-nav" aria-label="メインナビゲーション"><a href="#catalog">DISCOVER</a><a href="#rankingPanel">RANKING</a><a href="#comparePanel">COMPARE</a></nav></header>
 <section class="hero"><div class="inner"><div class="eyebrow">✦ K-POP MUSIC REVIEW PLATFORM</div><h1>音楽を、もっと深く。<br><span style="background:linear-gradient(90deg,#ff8caf,#d8ff63);background-clip:text;-webkit-background-clip:text;color:transparent">好きに、熱量を。</span></h1><p>聴くだけじゃない。感じたことを、言葉とスコアに。<br>あなたの視点でK-POPの魅力を記録し、ファンとシェアしよう。</p><div class="search"><input id="q" placeholder="アーティスト・アルバム・曲名を検索"><button class="primary" onclick="render()">検索</button></div></div></section>
-<main class="wrap"><p id="api-status" class="muted" aria-live="polite">データベースに接続しています…</p><div class="tools"><button id="browseBack" onclick="browseBack()" style="display:none">← 戻る</button><select id="sort" onchange="render()" style="display:none"><option value="score">総合評価順</option><option value="name">曲名順</option></select><button onclick="openCatalog()">＋ 楽曲・アルバムを登録</button><button onclick="openAdmin()">管理者審査</button></div><div class="browse-heading"><div><div class="eyebrow" id="browseEyebrow">EXPLORE STAGELOG</div><h2 id="browseTitle">アーティスト</h2><p id="browseDescription" class="muted">アーティストから、アルバム、そして楽曲へ。</p></div><div id="browseBreadcrumb" class="breadcrumb"></div></div><div id="songs" class="grid"></div><section class="panel"><h2>STAGELOG ランキング</h2><div id="ranking"></div><p class="muted">レビュー投稿はNeonデータベースに保存され、共有データとして表示されます。</p></section><section class="panel compare"><h2>楽曲を比較</h2><p class="muted">各曲の「比較に追加」で最大3曲を選択できます。</p><div id="comparison"></div></section></main>
+<section class="stats-strip" aria-label="STAGELOG catalog statistics"><div class="stat-item"><strong id="statArtists">—</strong><span>ARTISTS</span></div><div class="stat-item"><strong id="statAlbums">—</strong><span>ALBUMS</span></div><div class="stat-item"><strong id="statTracks">—</strong><span>TRACKS</span></div></section>
+<main class="wrap"><p id="api-status" class="muted" aria-live="polite">データベースに接続しています…</p><div class="tools"><button id="browseBack" onclick="browseBack()" style="display:none">← 戻る</button><select id="sort" onchange="render()" style="display:none"><option value="score">総合評価順</option><option value="name">曲名順</option></select><button onclick="openCatalog()">＋ 楽曲・アルバムを登録</button><button onclick="openAdmin()">管理者審査</button></div><div id="catalog" class="browse-heading"><div><div class="eyebrow" id="browseEyebrow">EXPLORE STAGELOG</div><h2 id="browseTitle">アーティスト</h2><p id="browseDescription" class="muted">アーティストから、アルバム、そして楽曲へ。</p></div><div id="browseBreadcrumb" class="breadcrumb"></div></div><div id="songs" class="grid"></div><section id="rankingPanel" class="panel"><div class="eyebrow">COMMUNITY CHART</div><h2>STAGELOG ランキング</h2><div id="ranking"></div><p class="muted">レビュー投稿はNeonデータベースに保存され、共有データとして表示されます。</p></section><section id="comparePanel" class="panel compare"><div class="eyebrow">SIDE BY SIDE</div><h2>楽曲を比較</h2><p class="muted">各曲の「比較に追加」で最大3曲を選択できます。</p><div id="comparison"></div></section></main>
+<footer class="site-footer"><div class="footer-inner"><div><div class="footer-brand">STAGE<span>LOG</span></div><div class="footer-caption">K-POP CULTURE, SCORED.</div></div><nav class="footer-links" aria-label="フッターナビゲーション"><a href="#catalog">DISCOVER</a><a href="#rankingPanel">RANKING</a><a href="#comparePanel">COMPARE</a><a href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">BACK TO TOP ↑</a></nav></div><div class="footer-note">STAGELOG is a community-driven K-POP music review platform. Scores represent community opinions and are not official chart rankings.</div></footer>
 <div class="modal" id="catalogModal"><div class="dialog"><button class="close" onclick="closeCatalog()">閉じる ✕</button><h2>楽曲・アルバムの登録申請</h2><p class="muted">申請内容は管理者の確認後に公開されます。既存の登録がないか検索してから申請してください。</p><label>登録タイプ <select id="catalogType" onchange="toggleCatalogFields()"><option value="song">楽曲</option><option value="album">アルバム</option></select></label><p><label>アーティスト名<br><input id="catalogArtist" maxlength="120" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px" placeholder="例：IVE"></label></p><p><label id="catalogTitleLabel">楽曲名<br><input id="catalogTitle" maxlength="160" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px" placeholder="例：HEYA"></label></p><p><label>発売日<br><input id="catalogDate" type="date" style="padding:10px;border:1px solid #ddd;border-radius:8px"></label></p><div id="albumFields" style="display:none"><p><label>リリース種別<br><select id="catalogReleaseType"><option value="album">Full Album</option><option value="mini album">Mini Album / EP</option><option value="single">Single</option><option value="digital single">Digital Single</option><option value="special">Special / OST</option></select></label></p><p><label>Spotify URL（任意）<br><input id="catalogSpotify" type="url" maxlength="500" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px" placeholder="https://open.spotify.com/track/... または /album/..."></label></p><p><label>Apple Music URL（任意）<br><input id="catalogApple" type="url" maxlength="500" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px" placeholder="https://music.apple.com/..."></label></p><p><label>ジャケット画像URL（任意）<br><input id="catalogCover" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px" placeholder="https://..."></label></p><p><label>収録曲（1行に1曲）<br><textarea id="catalogTracks" placeholder="曲名1&#10;曲名2&#10;曲名3"></textarea></label></p></div><p><label>補足情報（任意）<br><textarea id="catalogNote" placeholder="公式情報のURLや補足など"></textarea></label></p><button class="primary" onclick="submitCatalog()">審査に申請する</button><p id="catalogMessage" class="muted" aria-live="polite"></p></div></div>
 <div class="modal" id="adminModal"><div class="dialog"><button class="close" onclick="closeAdmin()">閉じる ✕</button><h2>管理者審査</h2><p class="muted">Cloudflare Pages の STAGELOG_ADMIN_TOKEN と同じトークンを入力してください。この端末のタブを閉じると認証情報は破棄されます。</p><input id="adminToken" type="password" autocomplete="off" placeholder="管理者トークン" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px"><p><button onclick="loadAdminQueue()">審査待ちを読み込む</button></p><div id="adminQueue"></div></div></div>
 <div class="detail-modal" id="detailModal" onclick="if(event.target===this)closeDetail()"><div class="detail-dialog"><div class="detail-head"><div><div class="eyebrow">STAGELOG SONG REVIEW</div><h2 id="detailTitle">楽曲詳細</h2><div id="detailArtist" class="artist"></div></div><button onclick="closeDetail()">閉じる ✕</button></div><div id="detailContent"></div></div></div>
@@ -195,7 +275,7 @@ textarea::placeholder,input::placeholder{color:#817985}
 const criteria=['楽曲構成・完成度','サウンド・アレンジ','ボーカル・ラップ','コンセプト・独創性','表現力・感情伝達','中毒性・印象度','総合評価'];
 let songs=[];let albums=[];let selected=[],editing=0;
 function avg(s,i=6){const vals=s.reviewRows.map(r=>Number(r.ratings[i])).filter(Number.isFinite);return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null}function fmtScore(value){return value===null?'—':value.toFixed(1)}function esc(value){return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-async function loadReviews(){try{const [songRes,reviewRes,albumRes]=await Promise.all([fetch('/api/songs'),fetch('/api/reviews'),fetch('/api/albums')]);if(!songRes.ok)throw new Error('Songs API '+songRes.status);if(!reviewRes.ok)throw new Error('Reviews API '+reviewRes.status);if(!albumRes.ok)throw new Error('Albums API '+albumRes.status);const dbSongs=await songRes.json();const rows=await reviewRes.json();albums=await albumRes.json();songs=dbSongs.map(s=>({id:Number(s.id),title:s.title,artist:s.artist,spotify_url:s.spotify_url||null,apple_music_url:s.apple_music_url||null,scores:[],reviewRows:rows.filter(r=>Number(r.song_id)===Number(s.id))}));document.getElementById('api-status').textContent='Neonデータベースに接続しました。楽曲とレビューを共有データから読み込んでいます。';render();}catch(e){console.error(e);document.getElementById('api-status').textContent='Neonへの接続に失敗しました。DATABASE_URL、songs/reviews API、テーブル設定を確認してください。'}}
+async function loadReviews(){try{const [songRes,reviewRes,albumRes]=await Promise.all([fetch('/api/songs'),fetch('/api/reviews'),fetch('/api/albums')]);if(!songRes.ok)throw new Error('Songs API '+songRes.status);if(!reviewRes.ok)throw new Error('Reviews API '+reviewRes.status);if(!albumRes.ok)throw new Error('Albums API '+albumRes.status);const dbSongs=await songRes.json();const rows=await reviewRes.json();albums=await albumRes.json();songs=dbSongs.map(s=>({id:Number(s.id),title:s.title,artist:s.artist,spotify_url:s.spotify_url||null,apple_music_url:s.apple_music_url||null,scores:[],reviewRows:rows.filter(r=>Number(r.song_id)===Number(s.id))}));document.getElementById('statArtists').textContent=artistNames().length.toLocaleString('ja-JP');document.getElementById('statAlbums').textContent=albums.length.toLocaleString('ja-JP');document.getElementById('statTracks').textContent=songs.length.toLocaleString('ja-JP');document.getElementById('api-status').textContent='Neonデータベースに接続しました。楽曲とレビューを共有データから読み込んでいます。';render();}catch(e){console.error(e);document.getElementById('api-status').textContent='Neonへの接続に失敗しました。DATABASE_URL、songs/reviews API、テーブル設定を確認してください。'}}
 
 let browseLevel='artists',browseArtist='',browseAlbumId=null;
 function albumTrackIds(a){let ids=a?.track_song_ids??[];if(typeof ids==='string'){try{ids=JSON.parse(ids)}catch{ids=[]}}return Array.isArray(ids)?ids.map(Number):[]}
