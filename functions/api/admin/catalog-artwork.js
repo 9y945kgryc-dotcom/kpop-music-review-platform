@@ -2,7 +2,7 @@ import { neon } from "@neondatabase/serverless";
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});}
 function authorized(context){const expected=context.env.STAGELOG_ADMIN_TOKEN,supplied=context.request.headers.get("Authorization")||"";return !!expected&&supplied===`Bearer ${expected}`;}
-function getSql(context){if(!context.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured");return neon(context.env.DATABASE_URL);}
+function getSql(context){if(!context.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured");return neon(context.env.DATABASE_URL);}\nfunction previewBackfillEnabled(context){const branch=context.env.CF_PAGES_BRANCH;return context.env.STAGELOG_ARTWORK_BACKFILL_ENABLED==="true"&&!!branch&&branch!=="main"&&branch!=="master";}\nfunction previewOnlyResponse(){return json({error:"既存ジャケットの補完はPreview環境限定です。Preview環境のSTAGELOG_ARTWORK_BACKFILL_ENABLEDをtrueにしてください。"},403);}
 function safeUrl(value,kind){
   if(typeof value!=="string"||!value.trim())return null;
   try{const u=new URL(value);if(u.protocol!=="https:")return null;
