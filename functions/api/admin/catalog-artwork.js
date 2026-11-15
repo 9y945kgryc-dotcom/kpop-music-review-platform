@@ -16,6 +16,7 @@ function safeUrl(value,kind){
 }
 export async function onRequestGet(context){
   if(!authorized(context))return json({error:"管理者認証に失敗しました。"},401);
+  if(!previewBackfillEnabled(context))return previewOnlyResponse();
   try{
     const sql=getSql(context);
     const rows=await sql`
@@ -40,6 +41,7 @@ export async function onRequestGet(context){
 }
 export async function onRequestPatch(context){
   if(!authorized(context))return json({error:"管理者認証に失敗しました。"},401);
+  if(!previewBackfillEnabled(context))return previewOnlyResponse();
   try{
     const body=await context.request.json(),id=Number(body.id),itemType=body.type==="song"?"song":"album";
     const artworkUrl=safeUrl(body.artworkUrl,"artwork"),appleMusicUrl=safeUrl(body.appleMusicUrl,"apple"),spotifyUrl=safeUrl(body.spotifyUrl,"spotify");
