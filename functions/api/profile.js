@@ -1,6 +1,6 @@
 import { json, requireUser, sqlFor } from "./_lib/auth.js";
 export async function onRequestGet(context){
-  try{const user=await requireUser(context);if(!user)return json({error:"ログインが必要です。"},401);return json({user});}
+  try{const user=await requireUser(context);if(!user)return json({error:"ログインが必要です。"},401);const sql=sqlFor(context);const rows=await sql`SELECT COUNT(*)::int AS received_likes FROM public.review_likes l JOIN public.song_reviews r ON r.id=l.review_id WHERE r.user_id=${user.id}`;return json({user,stats:rows[0]});}
   catch(error){console.error("GET /api/profile failed:",error);return json({error:"プロフィールを取得できませんでした。"},500);}
 }
 export async function onRequestPatch(context){
