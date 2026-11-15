@@ -11,8 +11,14 @@ export async function onRequestPost(context){
     if(!Array.isArray(ratings)||ratings.length!==7||ratings.some(v=>!Number.isFinite(Number(v))||Number(v)<0||Number(v)>5||Math.round(Number(v)*10)!==Number(v)*10))return json({error:"Ratings must contain seven values from 0.0 to 5.0 in 0.1 increments"},400);
     if(comment.length>2000)return json({error:"Comment is too long"},400);
     const sql=sqlFor(context),exists=await sql`SELECT id FROM public.songs WHERE id=${songId} LIMIT 1`;if(!exists.length)return json({error:"楽曲が見つかりません。"},404);
+    const recent=await sql`SELECT COUNT(*)::int AS count FROM public.song_reviews WHERE user_id=${user.id} AND created_at>NOW()-INTERVAL '10 minutes'`;
+    if(Number(recent[0]?.count||0)>=10)return json({error:"短時間のレビュー投稿が上限に達しました。少し時間をおいて再度お試しください。"},429);
     const normalized=ratings.map(v=>Number(Number(v).toFixed(1)));
-    const rows=await sql`INSERT INTO public.song_reviews(song_id,user_id,ratings,comment) VALUES(${songId},${user.id},${JSON.stringify(normalized)}::jsonb,${comment}) RETURNING id,song_id,ratings,comment,created_at`;
+    const rows=await sql`INSERT INTO public.song_reviews(song_id,user_id,ratings,comment)
+      VALUES(${songId},${user.id},${JSON.stringify(normalized)}::jsonb,${comment})
+      ON CONFLICT (user_id,song_id) WHERE user_id IS NOT NULL DO NOTHING
+      RETURNING id,song_id,ratings,comment,created_at`;
+    if(!rows.length)return json({error:"この楽曲のレビューはすでに投稿されています。既存のレビューを編集してください。"},409);
     await sql`INSERT INTO public.user_notifications(recipient_id,actor_id,notification_type,entity_id,message) SELECT follower_id,${user.id},'new_review',${rows[0].id},'フォロー中のユーザーが新しいレビューを投稿しました' FROM public.user_follows WHERE following_id=${user.id}`;
     return json(rows[0],201);
   }catch(error){console.error("POST /api/reviews failed:",error);return json({error:"Could not save review"},500);}
