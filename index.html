@@ -541,7 +541,7 @@ async function toggleReviewLike(reviewId,liked,songId){
 function mapDirectAppleResult(x){
  const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
  const raw=x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'';
- let artworkUrl='';try{const u=new URL(raw);if(u.protocol==='https:'&&(u.hostname==='mzstatic.com'||u.hostname.endsWith('.mzstatic.com')))artworkUrl=u.toString().replace(/\\d+x\\d+bb\\./,'600x600bb.');}catch{}
+ let artworkUrl='';try{const u=new URL(raw);if(u.protocol==='https:'&&(u.hostname==='mzstatic.com'||u.hostname.endsWith('.mzstatic.com')))artworkUrl=u.toString().replace(/\d+x\d+bb\./,'600x600bb.');}catch{}
  const rawStore=x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'';let storeUrl='';try{const u=new URL(rawStore);if(u.protocol==='https:'&&['music.apple.com','itunes.apple.com'].includes(u.hostname))storeUrl=u.toString();}catch{}
  const rawPreview=x.previewUrl||'';let previewUrl='';try{const u=new URL(rawPreview);if(u.protocol==='https:'&&u.hostname.endsWith('itunes.apple.com'))previewUrl=u.toString();}catch{}
  return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?x.artistName:kind==='album'?x.collectionName:x.trackName,albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl,storeUrl,previewUrl,trackCount:x.trackCount||null};
