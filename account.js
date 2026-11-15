@@ -1,69 +1,64 @@
 let stagelogUser=null;
+async function stagelogApi(url,options={}){const r=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"通信に失敗しました。");return d;}
+function stagelogEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function stagelogAvatar(u){return u?.avatar_url?'<img class="sl-avatar" src="'+stagelogEsc(u.avatar_url)+'" alt="">':'<span class="sl-avatar sl-avatar-fallback">'+stagelogEsc(({ "pink-star":"🌸","purple-heart":"💜","blue-mic":"🎤","gold-crown":"👑","silver-moon":"🌙","black-cat":"🐈‍⬛"}[u?.avatar_key]||"⭐"))+'</span>';}
 async function stagelogRefreshAuth(){
-  try{const r=await fetch('/api/auth/me');const d=await r.json();stagelogUser=d.user||null;}catch{stagelogUser=null;}
+  try{const d=await stagelogApi('/api/auth/me');stagelogUser=d.user||null;}catch{stagelogUser=null;}
   const box=document.getElementById('stagelog-auth');if(!box)return;
-  box.innerHTML=stagelogUser
-    ? '<button onclick="stagelogOpenPage()">マイページ</button> <button onclick="stagelogLogout()">ログアウト</button>'
-    : '<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button>';
+  box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button><button onclick="stagelogLogout()">ログアウト</button>':'<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button>';
+  if(stagelogUser)stagelogLoadUnread();
 }
 function stagelogModal(){
-  let el=document.getElementById('stagelog-member-modal');if(el)return el;
-  el=document.createElement('div');el.id='stagelog-member-modal';el.className='modal';
-  el.innerHTML='<div class="dialog"><button class="close" onclick="stagelogClosePage()">閉じる ✕</button><h2>マイページ</h2><div id="stagelog-profile-summary"></div><h3>プロフィール編集</h3><p><label>表示名<br><input id="stagelog-name" maxlength="60" style="width:100%;padding:10px"></label></p><p><label>プロフィールアイコン<br><select id="stagelog-avatar"><option value="pink-star">🌸 ピンクスター</option><option value="purple-heart">💜 パープルハート</option><option value="blue-mic">🎤 ブルーマイク</option><option value="gold-crown">👑 ゴールドクラウン</option><option value="silver-moon">🌙 シルバームーン</option><option value="black-cat">🐈‍⬛ ブラックキャット</option></select></label></p><p><label>自己紹介<br><textarea id="stagelog-bio" maxlength="240"></textarea></label></p><button class="primary" onclick="stagelogSaveProfile()">保存</button><p id="stagelog-profile-msg" class="muted"></p><h3>自分のレビュー</h3><div id="stagelog-my-reviews"></div><h3>お気に入り楽曲・アルバム</h3><div id="stagelog-my-favorites"></div><h3>登録申請履歴</h3><div id="stagelog-my-submissions"></div></div>';
-  document.body.appendChild(el);return el;
+ let el=document.getElementById('stagelog-member-modal');if(el)return el;
+ el=document.createElement('div');el.id='stagelog-member-modal';el.className='modal';
+ el.innerHTML='<div class="dialog"><button class="close" onclick="stagelogClosePage()">閉じる ✕</button><h2>マイページ</h2><div id="stagelog-profile-summary"></div><h3>プロフィール編集</h3><p><label>表示名<br><input id="stagelog-name" maxlength="60" style="width:100%;padding:10px"></label></p><p><label>プロフィールアイコン<br><select id="stagelog-avatar"><option value="pink-star">🌸 ピンクスター</option><option value="purple-heart">💜 パープルハート</option><option value="blue-mic">🎤 ブルーマイク</option><option value="gold-crown">👑 ゴールドクラウン</option><option value="silver-moon">🌙 シルバームーン</option><option value="black-cat">🐈‍⬛ ブラックキャット</option></select></label></p><p><label>自己紹介<br><textarea id="stagelog-bio" maxlength="240"></textarea></label></p><button class="primary" onclick="stagelogSaveProfile()">保存</button><p id="stagelog-profile-msg" class="muted"></p><h3>自分のレビュー</h3><div id="stagelog-my-reviews"></div><h3>お気に入り楽曲・アルバム</h3><div id="stagelog-my-favorites"></div><h3>登録申請履歴</h3><div id="stagelog-my-submissions"></div><h3>フォロー・フォロワー</h3><div id="stagelog-my-follows"></div><p><button onclick="stagelogOpenNotifications()">通知を見る</button></p></div>';
+ document.body.appendChild(el);return el;
 }
 async function stagelogOpenPage(){
-  if(!stagelogUser){if(confirm('Googleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}
-  stagelogModal().classList.add('open');
-  const paths=['/api/profile','/api/me/reviews','/api/favorites','/api/me/submissions'];
-  const rs=await Promise.all(paths.map(p=>fetch(p)));
-  if(rs.some(r=>r.status===401)){alert('ログイン状態が切れました。再度ログインしてください。');return;}
-  const [p,reviews,favs,subs]=await Promise.all(rs.map(r=>r.json())),u=p.user;
-  document.getElementById('stagelog-profile-summary').innerHTML=(u.avatar_url?'<img src="'+stagelogEsc(u.avatar_url)+'" style="width:56px;height:56px;border-radius:50%">':'')+'<b>'+stagelogEsc(u.display_name)+'</b><div class="muted">'+stagelogEsc(u.email)+'</div>';
-  document.getElementById('stagelog-name').value=u.display_name||'';
-  document.getElementById('stagelog-bio').value=u.bio||'';document.getElementById('stagelog-avatar').value=u.avatar_key||'pink-star';
-  document.getElementById('stagelog-my-reviews').innerHTML=reviews.length?reviews.map(x=>'<article class="review-entry"><b>'+stagelogEsc(x.song_title)+' — '+stagelogEsc(x.artist_name)+'</b><p>'+stagelogEsc(x.comment||'コメントなし')+'</p></article>').join(''):'<p class="muted">レビューはまだありません。</p>';
+ if(!stagelogUser){if(confirm('Googleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}
+ stagelogModal().classList.add('open');
+ try{
+  const [p,reviews,favs,subs,follows]=await Promise.all(['/api/profile','/api/me/reviews','/api/favorites','/api/me/submissions','/api/follows'].map(x=>stagelogApi(x)));
+  const u=p.user;
+  document.getElementById('stagelog-profile-summary').innerHTML=stagelogAvatar(u)+' <b>'+stagelogEsc(u.display_name)+'</b><div class="muted">'+stagelogEsc(u.email)+'</div><button onclick="stagelogOpenPublicProfile('+u.id+')">公開プロフィールを見る</button>';
+  document.getElementById('stagelog-name').value=u.display_name||'';document.getElementById('stagelog-bio').value=u.bio||'';document.getElementById('stagelog-avatar').value=u.avatar_key||'pink-star';
+  document.getElementById('stagelog-my-reviews').innerHTML=reviews.length?reviews.map(x=>'<article class="review-entry"><b>'+stagelogEsc(x.song_title)+' — '+stagelogEsc(x.artist_name)+'</b><p>'+stagelogEsc(x.comment||'コメントなし')+'</p><button onclick="stagelogEditReview('+x.id+',\''+stagelogEsc(x.comment||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">編集</button> <button onclick="stagelogDeleteReview('+x.id+')">削除</button></article>').join(''):'<p class="muted">レビューはまだありません。</p>';
   document.getElementById('stagelog-my-favorites').innerHTML=favs.length?favs.map(x=>'<div class="rank">'+stagelogEsc(x.title)+' — '+stagelogEsc(x.artist||'')+' ('+stagelogEsc(x.target_type)+') <button onclick="stagelogFavorite(\''+x.target_type+'\','+x.target_id+',true)">解除</button></div>').join(''):'<p class="muted">お気に入りはまだありません。</p>';
-  document.getElementById('stagelog-my-submissions').innerHTML=subs.length?subs.map(x=>'<article class="review-entry"><b>'+stagelogEsc(x.payload.title)+'</b><div class="muted">'+stagelogEsc(x.payload.artist)+' ・ '+stagelogEsc(x.status)+'</div></article>').join(''):'<p class="muted">申請履歴はありません。</p>';
+  document.getElementById('stagelog-my-submissions').innerHTML=subs.length?subs.map(x=>'<article class="review-entry"><b>'+stagelogEsc(x.payload.title)+'</b><div class="muted">'+stagelogEsc(x.payload.artist)+' ・ '+stagelogEsc(x.status)+(x.admin_note?' ・ '+stagelogEsc(x.admin_note):'')+'</div></article>').join(''):'<p class="muted">申請履歴はありません。</p>';
+  document.getElementById('stagelog-my-follows').innerHTML='<b>フォロワー '+follows.followers.length+'人 / フォロー中 '+follows.following.length+'人</b><div>'+follows.following.map(x=>'<button onclick="stagelogOpenPublicProfile('+x.id+')">'+stagelogEsc(x.display_name)+'</button>').join(' ')+'</div>';
+ }catch(e){alert(e.message);}
 }
-function stagelogEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function stagelogEditReview(id,old){const comment=prompt('レビューコメントを編集',old);if(comment===null)return;try{await stagelogApi('/api/reviews',{method:'PATCH',body:JSON.stringify({id,comment})});await stagelogOpenPage();}catch(e){alert(e.message);}}
+async function stagelogDeleteReview(id){if(!confirm('このレビューを削除しますか？'))return;try{await stagelogApi('/api/reviews',{method:'DELETE',body:JSON.stringify({id})});await stagelogOpenPage();}catch(e){alert(e.message);}}
 function stagelogClosePage(){document.getElementById('stagelog-member-modal')?.classList.remove('open');}
-async function stagelogSaveProfile(){
-  const r=await fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({displayName:document.getElementById('stagelog-name').value,bio:document.getElementById('stagelog-bio').value,avatarKey:document.getElementById('stagelog-avatar').value})});
-  const d=await r.json();document.getElementById('stagelog-profile-msg').textContent=r.ok?'保存しました。':(d.error||'保存できませんでした。');
+async function stagelogSaveProfile(){try{await stagelogApi('/api/profile',{method:'PATCH',body:JSON.stringify({displayName:document.getElementById('stagelog-name').value,bio:document.getElementById('stagelog-bio').value,avatarKey:document.getElementById('stagelog-avatar').value})});document.getElementById('stagelog-profile-msg').textContent='保存しました。';}catch(e){document.getElementById('stagelog-profile-msg').textContent=e.message;}}
+async function stagelogFavorite(type,id,remove=false){if(!stagelogUser){alert('Googleログインが必要です。');return;}try{await stagelogApi('/api/favorites',{method:remove?'DELETE':'POST',body:JSON.stringify({targetType:type,targetId:id})});await stagelogOpenPage();}catch(e){alert(e.message);}}
+async function stagelogLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}finally{stagelogUser=null;await stagelogRefreshAuth();}}
+async function stagelogLoadUnread(){try{const d=await stagelogApi('/api/notifications');const el=document.getElementById('sl-unread');if(el)el.textContent=d.unread?'('+d.unread+')':'';}catch{}}
+async function stagelogOpenNotifications(){
+ if(!stagelogUser){alert('Googleログインが必要です。');return;}
+ const win=window.open('','_blank');if(!win){alert('ポップアップを開けませんでした。');return;}
+ win.document.write('<title>STAGELOG 通知</title><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:sans-serif;padding:20px"><h1>通知</h1><p>読み込み中…</p></body>');
+ try{const d=await stagelogApi('/api/notifications');win.document.body.innerHTML='<h1>通知</h1><button id="all">すべて既読にする</button>'+ (d.notifications.length?d.notifications.map(n=>'<article style="padding:12px;border-bottom:1px solid #ddd"><b>'+stagelogEsc(n.message)+'</b><p>'+stagelogEsc(n.actor_name||'STAGELOG')+' ・ '+new Date(n.created_at).toLocaleString('ja-JP')+'</p><small>'+(n.read_at?'既読':'未読')+'</small></article>').join(''):'<p>通知はありません。</p>');win.document.getElementById('all').onclick=async()=>{await stagelogApi('/api/notifications',{method:'PATCH',body:'{}'});win.location.reload();};await stagelogLoadUnread();}catch(e){win.document.body.textContent=e.message;}
 }
-async function stagelogFavorite(type,id,remove=false){
-  if(!stagelogUser){alert('Googleログインが必要です。');return;}
-  const r=await fetch('/api/favorites',{method:remove?'DELETE':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({targetType:type,targetId:id})});
-  if(!r.ok){const d=await r.json();alert(d.error||'更新できませんでした。');return;}await stagelogOpenPage();
+async function stagelogOpenPublicProfile(id){
+ const modal=document.getElementById('stagelog-public-modal')||(()=>{const e=document.createElement('div');e.id='stagelog-public-modal';e.className='modal';e.innerHTML='<div class="dialog"><button class="close" onclick="this.closest(\'.modal\').classList.remove(\'open\')">閉じる ✕</button><div id="sl-public-content"></div></div>';document.body.appendChild(e);return e;})();
+ modal.classList.add('open');const box=document.getElementById('sl-public-content');box.innerHTML='読み込み中…';
+ try{const d=await stagelogApi('/api/users/'+id),u=d.user;box.innerHTML='<h2>'+stagelogAvatar(u)+' '+stagelogEsc(u.display_name)+'</h2><p>'+stagelogEsc(u.bio||'自己紹介はありません。')+'</p><p>レビュー '+d.stats.reviews+'件 ・ フォロワー '+d.stats.followers+'人 ・ フォロー中 '+d.stats.following+'人</p>'+(d.viewer&&d.viewer.id!==u.id?'<button id="sl-follow">'+(d.viewer.following?'フォロー解除':'フォローする')+'</button>':'')+'<h3>レビュー</h3>'+(d.reviews.length?d.reviews.map(r=>'<article class="review-entry"><b>'+stagelogEsc(r.song_title)+' — '+stagelogEsc(r.artist_name)+'</b><p>'+stagelogEsc(r.comment||'コメントなし')+'</p></article>').join(''):'<p>レビューはありません。</p>')+'<h3>お気に入り</h3>'+(d.favorites.length?d.favorites.map(f=>'<p>'+stagelogEsc(f.title)+' — '+stagelogEsc(f.artist||'')+'</p>').join(''):'<p>公開されているお気に入りはありません。</p>');
+ const b=box.querySelector('#sl-follow');if(b)b.onclick=async()=>{try{await stagelogApi('/api/follows',{method:d.viewer.following?'DELETE':'POST',body:JSON.stringify({userId:u.id})});await stagelogOpenPublicProfile(id);}catch(e){alert(e.message);}};
+ }catch(e){box.textContent=e.message;}
 }
-async function stagelogLogout(){await fetch('/api/auth/logout',{method:'POST'});stagelogUser=null;await stagelogRefreshAuth();}
-
+async function stagelogOpenRankings(){
+ const modal=document.getElementById('stagelog-ranking-modal')||(()=>{const e=document.createElement('div');e.id='stagelog-ranking-modal';e.className='modal';e.innerHTML='<div class="dialog"><button class="close" onclick="this.closest(\'.modal\').classList.remove(\'open\')">閉じる ✕</button><h2>ユーザーランキング</h2><p class="muted">レビュー投稿数を中心に、フォロワー数を加味したランキングです。</p><div id="sl-ranking-list"></div></div>';document.body.appendChild(e);return e;})();
+ modal.classList.add('open');const box=document.getElementById('sl-ranking-list');box.textContent='読み込み中…';
+ try{const rows=await stagelogApi('/api/rankings');box.innerHTML=rows.length?rows.map(x=>'<div class="rank"><span><b>'+x.rank+'.</b> '+stagelogAvatar(x)+' <button onclick="stagelogOpenPublicProfile('+x.id+')">'+stagelogEsc(x.display_name)+'</button><small>レビュー '+x.review_count+'件 / フォロワー '+x.follower_count+'人</small></span></div>').join(''):'<p>ランキングデータはまだありません。</p>';}catch(e){box.textContent=e.message;}
+}
 function stagelogDecorateFavorites(){
-  const songBox=document.getElementById('songs');
-  if(songBox) songBox.querySelectorAll('article.song').forEach(card=>{
-    if(card.dataset.favoriteReady)return;
-    const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'';
-    const item=songs?.find(x=>x.title===title&&x.artist===artist);if(!item)return;
-    const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('song',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';
-  });
-  const albumBox=document.getElementById('albums');
-  if(albumBox) albumBox.querySelectorAll('article.song').forEach(card=>{
-    if(card.dataset.favoriteReady)return;
-    const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'';
-    const item=albums?.find(x=>x.title===title&&x.artist_name===artist);if(!item)return;
-    const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('album',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';
-  });
+ const songBox=document.getElementById('songs');if(songBox&&typeof songs!=='undefined')songBox.querySelectorAll('article.song').forEach(card=>{if(card.dataset.favoriteReady)return;const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'',item=songs.find(x=>x.title===title&&x.artist===artist);if(!item)return;const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('song',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';});
+ const albumBox=document.getElementById('albums');if(albumBox&&typeof albums!=='undefined')albumBox.querySelectorAll('article.song').forEach(card=>{if(card.dataset.favoriteReady)return;const title=card.querySelector('.body b')?.textContent||'',artist=card.querySelector('.artist')?.textContent||'',item=albums.find(x=>x.title===title&&x.artist_name===artist);if(!item)return;const b=document.createElement('button');b.textContent='♡ お気に入り';b.onclick=()=>stagelogFavorite('album',item.id);card.querySelector('.body')?.appendChild(b);card.dataset.favoriteReady='1';});
 }
-
 document.addEventListener('DOMContentLoaded',()=>{
-  const originalReview=window.openReview,originalCatalog=window.openCatalog;
-  if(originalReview)window.openReview=function(...args){if(!stagelogUser){if(confirm('レビュー投稿にはGoogleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}return originalReview(...args);};
-  if(originalCatalog)window.openCatalog=function(...args){if(!stagelogUser){if(confirm('登録申請にはGoogleログインが必要です。ログインしますか？'))location.href='/api/auth/google';return;}return originalCatalog(...args);};
-  const observer=new MutationObserver(stagelogDecorateFavorites);
-  ['songs','albums'].forEach(id=>{const node=document.getElementById(id);if(node)observer.observe(node,{childList:true,subtree:true});});
-  setTimeout(stagelogDecorateFavorites,500);
-
-  const h=document.querySelector('.top');if(h){const a=document.createElement('span');a.id='stagelog-auth';a.style.cssText='float:right;letter-spacing:0';h.appendChild(a);}
-  stagelogRefreshAuth();
+ const h=document.querySelector('.top');if(h){const a=document.createElement('span');a.id='stagelog-auth';a.style.cssText='float:right;letter-spacing:0';h.appendChild(a);const nav=document.createElement('span');nav.innerHTML=' <button onclick="stagelogOpenRankings()">ユーザーランキング</button>';nav.style.cssText='float:right;letter-spacing:0';h.appendChild(nav);}
+ const observer=new MutationObserver(stagelogDecorateFavorites);['songs','albums'].forEach(id=>{const node=document.getElementById(id);if(node)observer.observe(node,{childList:true,subtree:true});});
+ stagelogRefreshAuth();setTimeout(stagelogDecorateFavorites,500);
 });
