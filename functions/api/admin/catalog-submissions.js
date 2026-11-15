@@ -86,6 +86,10 @@ export async function onRequestPatch(context) {
       WHERE id = ${id} AND status = 'pending'
       RETURNING id, status, reviewed_at
     `;
+    if (submission.user_id) {
+      await sql`INSERT INTO public.user_notifications(recipient_id,actor_id,notification_type,entity_id,message)
+        VALUES(${submission.user_id},NULL,${decision === "approve" ? "submission_approved" : "submission_rejected"},${id},${decision === "approve" ? "登録申請が承認され、公開されました。" : "登録申請が却下されました。管理者メモをご確認ください。"})`;
+    }
     return json({ submission: updated[0], message: decision === "approve" ? "承認して公開しました。" : "申請を却下しました。" });
   } catch (error) {
     console.error("PATCH /api/admin/catalog-submissions failed:", error);
