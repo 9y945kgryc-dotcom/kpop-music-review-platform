@@ -91,3 +91,13 @@ A song should not be duplicated merely because it appears on more than one relea
 - Add rate limiting / abuse protection to review submission.
 - Add moderation and reporting workflows.
 - Test migrations on a separate Neon branch and retain backups.
+## Catalogue schema extension
+
+An additive extension is available at database/catalog-model-v2.sql. It adds:
+
+- Album-to-artist credits for collaborations and shared releases.
+- Album track listings so a canonical song can appear on more than one release.
+- Song versions for Japanese / English versions, remixes, instrumentals, live versions, and other variants.
+- Group membership history linking member artist records to group artist records.
+
+This file depends on the normalized base schema in database/schema.sql. It is not a migration for the currently deployed legacy review table. Test it on a separate Neon branch and populate relationships only from verified source data. Do not guess track numbers, artist credits, or version relationships.
