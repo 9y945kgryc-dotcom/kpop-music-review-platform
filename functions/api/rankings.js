@@ -16,7 +16,7 @@ export async function onRequestGet(context){
       COALESCE(rc.review_count,0)::int AS review_count,
       COALESCE(fc.follower_count,0)::int AS follower_count,
       COALESCE(l.received_likes,0)::int AS received_likes,
-      ROUND(1+LEAST(0.500,LN(1+COALESCE(l.received_likes,0))*0.080),3) AS like_coefficient,
+      ROUND((1+LEAST(0.500,LN(1+COALESCE(l.received_likes,0))*0.080))::numeric,3) AS like_coefficient,
       rc.last_review_at
     FROM public.users u
     LEFT JOIN review_counts rc ON rc.user_id=u.id
