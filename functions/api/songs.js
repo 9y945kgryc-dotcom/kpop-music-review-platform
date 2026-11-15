@@ -22,7 +22,7 @@ export async function onRequestGet(context) {
         FROM public.song_reviews r
         LEFT JOIN public.user_rating_trust t ON t.user_id = r.user_id
         WHERE r.ratings ? '6'
-          AND (r.ratings->>6) ~ '^[0-5](\\.[0-9]+)?$'
+          AND (r.ratings->>6) ~ '^[0-5]([.][0-9]+)?$'
       ),
       global_baseline AS (
         SELECT COALESCE(
