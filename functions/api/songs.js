@@ -17,6 +17,8 @@ export async function onRequestGet(context) {
         s.id,
         s.title,
         a.name AS artist,
+        s.spotify_url,
+        s.apple_music_url,
         COUNT(r.id)::int AS review_count,
         ROUND(AVG((r.ratings->>6)::numeric), 1) AS overall_score
       FROM public.songs s
