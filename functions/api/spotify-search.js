@@ -2,10 +2,10 @@ function json(data,status=200,ttl=120){
  return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":ttl?`public, max-age=30, s-maxage=${ttl}, stale-while-revalidate=120`:"no-store"}});
 }
 function clean(value,max=180){return typeof value==="string"?value.trim().slice(0,max):"";}
-async function spotifyToken(env){
+async function spotifyToken(env,origin){
  const clientId=env.SPOTIFY_CLIENT_ID,clientSecret=env.SPOTIFY_CLIENT_SECRET;
  if(!clientId||!clientSecret){const error=new Error("Spotify APIの認証情報が設定されていません。Cloudflare PagesのPreview環境にもSPOTIFY_CLIENT_IDとSPOTIFY_CLIENT_SECRETを設定してください。");error.status=503;throw error;}
- const cache=typeof caches!=="undefined"?caches.default:null,key=new Request("https://kreview-internal-cache.example/spotify-token");
+ const cache=typeof caches!=="undefined"?caches.default:null,key=new Request(origin+"/__cache/spotify-token");
  if(cache){const hit=await cache.match(key);if(hit){const data=await hit.json();if(data.access_token)return data.access_token;}}
  const basic=btoa(clientId+":"+clientSecret);
  const response=await fetch("https://accounts.spotify.com/api/token",{method:"POST",headers:{"Authorization":"Basic "+basic,"Content-Type":"application/x-www-form-urlencoded"},body:"grant_type=client_credentials"});
@@ -20,7 +20,7 @@ export async function onRequestGet({request,env}){
  const cache=typeof caches!=="undefined"?caches.default:null,cacheUrl=new URL("/__cache/spotify-search",url.origin);cacheUrl.search=new URLSearchParams({q:q.toLowerCase(),type}).toString();
  if(cache){const hit=await cache.match(cacheUrl);if(hit)return hit;}
  try{
-  const token=await spotifyToken(env),params=new URLSearchParams({q,type,limit:"15",market:"JP"});
+  const token=await spotifyToken(env,url.origin),params=new URLSearchParams({q,type,limit:"15",market:"JP"});
   const response=await fetch("https://api.spotify.com/v1/search?"+params.toString(),{headers:{Authorization:"Bearer "+token,Accept:"application/json"}});
   if(!response.ok){const error=new Error(response.status===403?"Spotify APIへのアクセスが許可されていません。Developer Modeの利用条件・アプリ権限を確認してください。":"Spotify検索に失敗しました。");error.status=response.status===429?429:502;throw error;}
   const data=await response.json(),items=type==="album"?(data.albums?.items||[]):(data.tracks?.items||[]);
