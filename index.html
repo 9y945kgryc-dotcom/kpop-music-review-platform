@@ -537,7 +537,8 @@ loadReviews();
 async function toggleReviewLike(reviewId,liked,songId){
  try{const res=await fetch('/api/review-likes',{method:liked?'DELETE':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewId})});const data=await res.json();if(!res.ok)throw new Error(data.error||'いいねできませんでした。');await loadReviews();openDetail(songId);}catch(e){alert(e.message);}
 }
-</script><script src="/account.js" defer>let appleCatalogResults=[];
+</script><script>
+let appleCatalogResults=[];
 function mapDirectAppleResult(x){
  const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
  const raw=x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'';
@@ -590,4 +591,6 @@ function addAppleResultToCatalog(index){
  document.getElementById('catalogArtworkResults').innerHTML=item.artworkUrl?'<div class="artwork-selected"><img src="'+esc(item.artworkUrl)+'" alt=""><div><b>Apple Musicから選択</b><small>'+esc(item.title)+'</small></div></div>':'';
  document.getElementById('catalogMessage').textContent='Apple Musicの検索結果を登録申請フォームに反映しました。内容を確認して送信してください。';
 }
-</script></body></html>
+</script>
+<script src="/account.js" defer></script>
+</body></html>
