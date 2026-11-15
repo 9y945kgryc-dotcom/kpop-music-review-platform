@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
     if (!context.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured");
     const sql = neon(context.env.DATABASE_URL);
     const rows = await sql`
-      SELECT id, title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url, created_at
+      SELECT id, title, artist_name, release_date, release_type, cover_image_url, track_song_ids, deezer_url, created_at
       FROM public.stagelog_albums
       ORDER BY release_date DESC NULLS LAST, created_at DESC
       LIMIT 100
