@@ -1,76 +1,93 @@
-# STAGELOG backend setup
+# STAGELOG backend and deployment notes
 
-## Chosen stack
+## Current architecture
 
-- Next.js on Vercel for the web app and server-side routes.
-- Neon PostgreSQL for relational data and SQL-based review rankings.
-- Neon Auth (managed Better Auth) for Google and Apple sign-in.
-- GitHub for source control and deployment integration.
+The repository is currently deployed as a **Cloudflare Pages** site:
 
-The current `index.html` is the visual prototype. It is not yet connected to authentication or a database. The SQL schema in `database/schema.sql` is the proposed application data model.
+- Static frontend: index.html
+- API routes: Cloudflare Pages Functions under functions/api/
+- Database: Neon PostgreSQL
+- PostgreSQL driver: @neondatabase/serverless
+- Required server-side binding: DATABASE_URL
 
-## 1. Create the Neon project
+The current review endpoint is /api/reviews, implemented in functions/api/reviews.js. It reads and writes the existing song_reviews table. The deployed frontend loads reviews from this endpoint and posts new reviews to it.
 
-1. Sign in at https://console.neon.tech/.
-2. Create a project named `stagelog`.
-3. Choose a region close to the expected audience and application region. Keep Vercel and Neon geographically close where practical.
-4. Copy the pooled PostgreSQL connection string. Store it as `DATABASE_URL` in Vercel and local `.env.local`.
-5. Enable Neon Auth for the project/branch and copy its Auth URL to `NEXT_PUBLIC_NEON_AUTH_URL`.
+## Cloudflare Pages configuration
 
-Do not paste database passwords, API keys, OAuth client secrets, or complete connection strings into chat or commit them to GitHub.
+1. Open the Cloudflare dashboard and select **Workers & Pages**.
+2. Select the kpop-music-review-platform Pages project.
+3. Open **Settings → Variables and Secrets**.
+4. Add DATABASE_URL as a secret for Production. Add a separate value for Preview if a separate Neon branch is used.
+5. Redeploy after changing environment variables.
 
-## 2. Configure social sign-in
+Use the Neon pooled connection string. Keep it server-side: do not expose it in HTML, JavaScript sent to the browser, or any NEXT_PUBLIC_* variable.
 
-In the Neon Console, open the project's Auth / Better Auth settings.
+## Neon configuration
 
-- Enable Google and Apple providers.
-- Create OAuth credentials in Google Cloud Console and Apple Developer configuration.
-- Register the exact callback/redirect URI shown by Neon for each provider. Do not guess the callback URL.
-- Add the local development origin and the production domain to the trusted origins / allowed domains.
-- For Apple, configure the Services ID, Team ID, Key ID, and private key as required by the Neon provider setup.
+1. Open the STAGELOG project in Neon Console.
+2. Copy the pooled connection string for the intended branch.
+3. Store it in Cloudflare as DATABASE_URL.
+4. Keep a separate development branch/database where practical.
+5. Before changing the live schema, create a backup or Neon branch and test the migration there.
 
-Start with Google in development if Apple credentials are not ready; add Apple before public launch.
+Never paste a full connection string, database password, or secret into chat or commit it to GitHub.
 
-## 3. Apply the application schema
+## Current review table versus normalized schema
 
-Open Neon SQL Editor for the development branch and run `database/schema.sql`.
+There is an important transition to complete before expanding the catalogue:
 
-The schema creates:
-- User profiles linked to Neon Auth user IDs (no passwords or OAuth tokens are stored in the app schema).
-- Artists, albums, songs, and song-to-artist credits.
-- One review per user per song.
-- Six independent category scores plus a separately entered overall score, each in 0.1 increments.
-- Likes, favorite songs, comments, follows, and moderation reports.
-- A view for published review aggregates and rankings.
+- Current Pages Function: song_reviews, numeric song_id, seven ratings stored together as JSONB, plus comment and timestamp.
+- Proposed database/schema.sql: UUID-based artists, albums, songs, reviews, and review_scores, with six score columns and an independent overall score.
 
-The schema is a starting point. Before production, add authorization policies/secure server-side query functions for every write operation and test ownership checks.
+The live API does not currently use the normalized reviews and review_scores tables. The proposed schema must therefore be treated as a target design, not as a drop-in replacement for the live database.
 
-## 4. Environment variables
+### Safe migration sequence
 
-Copy `.env.example` to `.env.local` for local work. Add the same values to Vercel Project Settings → Environment Variables.
+1. Inspect the actual live song_reviews table columns and types in Neon SQL Editor.
+2. Create a Neon branch or backup before modifying anything.
+3. Create the artist / album / song catalogue and assign a stable catalogue ID to every current song.
+4. Build a mapping from each existing numeric song_reviews.song_id to its catalogue song. Preserve every review row and all seven score values.
+5. Test reads, new review writes, averages, and detail pages against the migrated data.
+6. Only after verification, switch the API to the new model. Keep a rollback path until production has been checked.
 
-- `NEXT_PUBLIC_NEON_AUTH_URL`: Neon Auth endpoint for the relevant branch.
-- `DATABASE_URL`: pooled Neon PostgreSQL connection string; server-only.
-- `NEXT_PUBLIC_APP_URL`: local or production canonical URL.
+Do not drop or rename song_reviews as part of an initial catalogue rollout.
 
-Use separate Neon branches and Auth URLs for development/preview and production.
+## Review score model
 
-## 5. Deploy
+Every review contains seven independently supplied values, all from 0.0 to 5.0 in 0.1 increments:
 
-1. Import this GitHub repository into Vercel.
-2. Configure environment variables for Preview and Production separately.
-3. Set the correct OAuth redirect URLs and trusted origins for each environment.
-4. Deploy and test sign-in, sign-out, profile creation, and review ownership.
-5. Keep the Vercel Hobby plan only for personal/non-commercial testing. Vercel's terms restrict Hobby to personal or non-commercial use; move to Pro before operating STAGELOG commercially.
+1. 楽曲構成・完成度
+2. サウンド・アレンジ
+3. ボーカル・ラップ
+4. コンセプト・独創性
+5. 表現力・感情伝達
+6. 中毒性・印象度
+7. 総合評価
 
-## Cost controls
+The overall score must remain independent and must never be calculated as the average of the six category scores.
 
-- Start on Neon Free and monitor compute hours, storage, and network transfer.
-- Keep the database pooled connection string server-side.
-- Avoid storing large images in PostgreSQL; use object storage or image URLs.
-- Paginate reviews and comments; index filter/sort columns.
-- Add usage alerts and backups before inviting a wider audience.
+## Catalogue model to implement
 
-## Next implementation milestone
+- **Artist:** group, soloist, band, or other credited act; Korean and international names; agency; debut date.
+- **Album / release:** album, mini album, single, digital single, OST, or special release; release date and cover art.
+- **Song:** canonical track identity, original title, Korean title, release date, and track artwork.
+- **Song credits:** many-to-many song / artist relation to support collaborations, featuring artists, and unit tracks.
+- **Song version:** optional version record for Japanese versions, remixes, instrumentals, and alternate releases, linked to a canonical song where appropriate.
 
-Convert the existing static prototype into a Next.js app, integrate the current Neon Auth SDK for Google/Apple OAuth, then replace browser-only LocalStorage review persistence with authenticated server-side PostgreSQL operations.
+A song should not be duplicated merely because it appears on more than one release. Release track listings should connect releases to the canonical song.
+
+## Current limitations
+
+- The initial song-card list is still seeded in the frontend; it is not yet a full searchable catalogue.
+- Reviews are shared through Neon, but the current API does not yet enforce signed-in user ownership.
+- Authentication, review editing/deletion, moderation workflows, and rate limiting must be implemented before broad public launch.
+- The normalized schema is a target model and has not yet been connected to the current Pages Function.
+
+## Security checklist before public launch
+
+- Keep DATABASE_URL in Cloudflare secrets only.
+- Validate all request bodies on the server.
+- Add authentication and ownership checks before allowing edits or deletes.
+- Add rate limiting / abuse protection to review submission.
+- Add moderation and reporting workflows.
+- Test migrations on a separate Neon branch and retain backups.
