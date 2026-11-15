@@ -37,7 +37,7 @@ The catalogue uses the existing Neon artists, songs and stagelog_albums tables. 
 - The administrator moderation screen previews submitted artwork before approval.
 - Administrators can find existing albums and standalone songs without artwork, search Deezer candidates, and save a manually verified artwork and Deezer player link.
 - Deezer artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
-- No database migration is required. Existing album artwork and platform URLs are stored in `stagelog_albums`; standalone song artwork is represented as a single-release row linked to the existing song ID.
+- Apply `migrations/008_deezer_music_provider.sql` to the target Neon database before deploying this branch. It adds `deezer_url` to songs and albums; existing artwork and catalogue rows are preserved.
 - Deezer catalogue search results are cached for five minutes in clients and served through Cloudflare's shared cache.
 - Existing-artwork backfill is disabled by default. It is available only when `STAGELOG_ARTWORK_BACKFILL_ENABLED=true` is set in the intended Cloudflare Pages environment and the request also has a valid `STAGELOG_ADMIN_TOKEN`. Enable it in Production only after the admin token is configured.
 
@@ -59,7 +59,7 @@ The overall score is entered independently; it is not calculated as the average 
 - index.html: current frontend.
 - functions/api/reviews.js: current Neon-backed review API.
 - functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).
-- functions/api/artwork-search.js: Apple Music / iTunes Store artwork search endpoint.
+- functions/api/artwork-search.js: Deezer catalogue artwork search endpoint.
 - functions/api/admin/catalog-artwork.js: token-protected existing artwork backfill endpoint.
 - functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
 - database/schema.sql: proposed normalized relational model for profiles, artists, albums, songs, reviews, and social features.
@@ -85,7 +85,7 @@ Set DATABASE_URL in Cloudflare Pages → Settings → Variables and Secrets for 
 3. Store `STAGELOG_ADMIN_TOKEN` as a Cloudflare secret; never expose it to the browser or commit it.
 4. Apply `migrations/007_user_song_review_uniqueness.sql` to the same Neon branch used by Production before deploying the review API update.
 5. Set `STAGELOG_ARTWORK_BACKFILL_ENABLED=true` only when ready to run the administrator-only artwork backfill.
-6. Verify sign-in, review create/edit/delete, likes, catalogue submissions, admin moderation, and Apple artwork search against the Production URL.
+6. Verify sign-in, review create/edit/delete, likes, catalogue submissions, admin moderation, and Deezer artwork search against the Production URL.
 7. Keep the legacy `song_reviews` table and numeric song IDs. The normalized schema remains a future migration target, not a replacement.
 
 Legacy `spotify_url` and `apple_music_url` database columns are intentionally retained during this migration to avoid deleting historical values. The application no longer reads, writes, searches, or embeds those providers. New active links are stored in `deezer_url` on songs and albums.\n\n## Commercial use
