@@ -1,101 +1,12 @@
-function json(data,status=200,headers={}) {
-  return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"public, max-age=300, s-maxage=3600",...headers}});
-}
+function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"public, max-age=300, s-maxage=3600",...headers}});}
 function clean(value,max=120){return typeof value==="string"?value.trim().slice(0,max):"";}
-function safeArtwork(value){
-  try{
-    const url=new URL(value);
-    const appleHost=url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com")||url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com");
-    const deezerHost=url.hostname==="cdn-images.dzcdn.net";
-    if(!appleHost&&!deezerHost)return null;
-    if(!["https:","http:"].includes(url.protocol))return null;
-    url.protocol="https:";
-    return url.toString();
-  }catch{return null;}
-}
-function safeHttps(value){
-  try{const url=new URL(value);return url.protocol==="https:"&&["music.apple.com","itunes.apple.com"].includes(url.hostname)?url.toString():null;}
-  catch{return null;}
-}
-function mapApple(item,type){
-  const artwork=item.artworkUrl512||item.artworkUrl100||item.artworkUrl60||"";
-  const storeUrl=safeHttps(type==="song"?(item.trackViewUrl||item.collectionViewUrl):(item.collectionViewUrl||item.trackViewUrl));
-  const collectionUrl=safeHttps(item.collectionViewUrl);
-  return {
-    source:"Apple Music",
-    kind:type,
-    artistName:clean(item.artistName,160),
-    title:clean(type==="song"?(item.trackName||item.collectionName):(item.collectionName||item.trackName),180),
-    collectionName:clean(item.collectionName,180),
-    releaseDate:typeof item.releaseDate==="string"?item.releaseDate.slice(0,10):"",
-    artworkUrl:safeArtwork(artwork),
-    storeUrl,
-    collectionUrl,
-    trackCount:Number.isFinite(Number(item.trackCount))?Number(item.trackCount):null,
-    country:clean(item.country,8)
-  };
-}
-function mapDeezer(item,type){
-  const album=type==="song"?(item.album||{}):item;
-  const artist=type==="song"?(item.artist||{}):(item.artist||{});
-  const artwork=album.cover_xl||album.cover_big||album.cover_medium||"";
-  const deezerLink=type==="song"?item.link:(item.link||"");
-  const collectionLink=album.link||"";
-  const safeLink=value=>{try{const u=new URL(value);return u.protocol==="https:"&&u.hostname==="www.deezer.com"?u.toString():null}catch{return null}};
-  return {
-    source:"Deezer",
-    kind:type,
-    artistName:clean(artist.name,160),
-    title:clean(type==="song"?item.title:album.title,180),
-    collectionName:clean(album.title,180),
-    releaseDate:"",
-    artworkUrl:safeArtwork(artwork),
-    storeUrl:safeLink(deezerLink),
-    collectionUrl:safeLink(collectionLink),
-    trackCount:Number.isFinite(Number(album.nb_tracks))?Number(album.nb_tracks):null,
-    country:""
-  };
-}
-async function searchDeezer(term,type){
-  const endpoint=type==="song"?"track":"album";
-  const url="https://api.deezer.com/search/"+endpoint+"?"+new URLSearchParams({q:term,limit:"12"}).toString();
-  const response=await fetch(url,{headers:{Accept:"application/json"},cf:{cacheTtl:3600,cacheEverything:true}});
-  if(!response.ok)throw new Error("Deezer Search API HTTP "+response.status);
-  const data=await response.json();
-  if(data.error)throw new Error(data.error.message||"Deezer Search API error");
-  return (Array.isArray(data.data)?data.data:[]).map(item=>mapDeezer(item,type)).filter(item=>item.title&&item.artistName&&item.artworkUrl);
-}
-export async function onRequestGet(context){
-  const requestUrl=new URL(context.request.url);
-  const type=requestUrl.searchParams.get("type")==="song"?"song":"album";
-  const artist=clean(requestUrl.searchParams.get("artist"),100);
-  const title=clean(requestUrl.searchParams.get("title"),140);
-  const country=(clean(requestUrl.searchParams.get("country"),2)||"jp").toLowerCase();
-  if(!artist||!title)return json({error:"アーティスト名と作品名を入力してください。"},400,{"Cache-Control":"no-store"});
-  if(!/^[a-z]{2}$/.test(country))return json({error:"国コードが正しくありません。"},400,{"Cache-Control":"no-store"});
-  const term=[artist,title].filter(Boolean).join(" ");
-  const params=new URLSearchParams({term,country,media:"music",entity:type==="song"?"song":"album",limit:"12",lang:"ja_jp"});
-  let appleError=null;
-  try{
-    const response=await fetch("https://itunes.apple.com/search?"+params.toString(),{
-      headers:{Accept:"application/json","User-Agent":"Mozilla/5.0 (compatible; K-REVIEW/1.0; +https://kpop-music-review-platform.pages.dev/)"},
-      cf:{cacheTtl:3600,cacheEverything:true}
-    });
-    if(response.ok){
-      const data=await response.json();
-      const results=(Array.isArray(data.results)?data.results:[]).map(item=>mapApple(item,type)).filter(item=>item.title&&item.artworkUrl);
-      if(results.length)return json({source:"Apple Music",results});
-    }else{
-      appleError="Apple Search API HTTP "+response.status;
-      console.error(appleError,"retry-after:",response.headers.get("retry-after"));
-    }
-  }catch(error){appleError=String(error);console.error("Apple Search API failed:",error);}
-  try{
-    const results=await searchDeezer(term,type);
-    if(results.length)return json({source:"Deezer",results,notice:"Apple Music検索が混雑しているため、Deezerのカタログから候補を表示しています。"});
-    return json({source:"Deezer",results:[],notice:"Apple MusicとDeezerの両方で候補が見つかりませんでした。"});
-  }catch(error){
-    console.error("Deezer fallback failed:",error,"Apple result:",appleError);
-    return json({error:"Apple MusicとDeezerのカタログ検索に接続できませんでした。時間をおいて再度お試しください。"},503,{"Cache-Control":"no-store","Retry-After":"60"});
-  }
-}
+function safeArtwork(value){try{const u=new URL(value);const host=u.hostname==="mzstatic.com"||u.hostname.endsWith(".mzstatic.com")||u.hostname==="itunes.apple.com"||u.hostname.endsWith(".itunes.apple.com")||u.hostname==="cdn-images.dzcdn.net"||u.hostname==="i.scdn.co";if(!host||!["https:","http:"].includes(u.protocol))return null;u.protocol="https:";return u.toString();}catch{return null;}}
+function safeStore(value,provider){try{const u=new URL(value);const allowed=provider==="Spotify"?["open.spotify.com"]:provider==="Apple Music"?["music.apple.com","itunes.apple.com"]:["www.deezer.com"];return u.protocol==="https:"&&allowed.includes(u.hostname)?u.toString():null;}catch{return null;}}
+function mapApple(x,type){return{source:"Apple Music",kind:type,artistName:clean(x.artistName,160),title:clean(type==="song"?(x.trackName||x.collectionName):(x.collectionName||x.trackName),180),collectionName:clean(x.collectionName,180),releaseDate:typeof x.releaseDate==="string"?x.releaseDate.slice(0,10):"",artworkUrl:safeArtwork(x.artworkUrl512||x.artworkUrl100||x.artworkUrl60||""),storeUrl:safeStore(type==="song"?(x.trackViewUrl||x.collectionViewUrl):(x.collectionViewUrl||x.trackViewUrl),"Apple Music"),collectionUrl:safeStore(x.collectionViewUrl,"Apple Music"),spotifyUrl:null,trackCount:Number.isFinite(Number(x.trackCount))?Number(x.trackCount):null};}
+function mapSpotify(x,type){const album=type==="song"?(x.album||{}):x;const images=album.images||[];const image=images.find(i=>i.width>=300)||images[0]||{};return{source:"Spotify",kind:type,artistName:clean((x.artists||[]).map(a=>a.name).join(", "),160),title:clean(type==="song"?x.name:album.name,180),collectionName:clean(album.name,180),releaseDate:clean(album.release_date,10),artworkUrl:safeArtwork(image.url||""),storeUrl:safeStore(x.external_urls?.spotify||album.external_urls?.spotify,"Spotify"),collectionUrl:safeStore(album.external_urls?.spotify,"Spotify"),spotifyUrl:safeStore(type==="song"?x.external_urls?.spotify:album.external_urls?.spotify,"Spotify"),trackCount:Number.isFinite(Number(album.total_tracks))?Number(album.total_tracks):null};}
+function mapDeezer(x,type){const a=x.album||x,artist=x.artist||{},art=a.cover_xl||a.cover_big||a.cover_medium||"";return{source:"Deezer",kind:type,artistName:clean(artist.name,160),title:clean(type==="song"?x.title:a.title,180),collectionName:clean(a.title,180),releaseDate:"",artworkUrl:safeArtwork(art),storeUrl:safeStore(x.link||a.link,"Deezer"),collectionUrl:safeStore(a.link,"Deezer"),spotifyUrl:null,trackCount:Number.isFinite(Number(a.nb_tracks))?Number(a.nb_tracks):null};}
+async function spotifyToken(env){if(!env.SPOTIFY_CLIENT_ID||!env.SPOTIFY_CLIENT_SECRET)return null;const credentials=btoa(env.SPOTIFY_CLIENT_ID+":"+env.SPOTIFY_CLIENT_SECRET);const r=await fetch("https://accounts.spotify.com/api/token",{method:"POST",headers:{"Authorization":"Basic "+credentials,"Content-Type":"application/x-www-form-urlencoded"},body:"grant_type=client_credentials"});if(!r.ok)throw new Error("Spotify token HTTP "+r.status);const d=await r.json();return d.access_token||null;}
+async function searchSpotify(term,type,env){const token=await spotifyToken(env);if(!token)return[];const url="https://api.spotify.com/v1/search?"+new URLSearchParams({q:term,type,market:"JP",limit:"12"});const r=await fetch(url,{headers:{Authorization:"Bearer "+token},cf:{cacheTtl:1800,cacheEverything:true}});if(!r.ok)throw new Error("Spotify Search API HTTP "+r.status);const d=await r.json();const key=type==="track"?"tracks":"albums";return(d[key]?.items||[]).map(x=>mapSpotify(x,type==="track"?"song":"album")).filter(x=>x.title&&x.artistName&&x.artworkUrl);}
+async function searchApple(term,type,country){const p=new URLSearchParams({term,country,media:"music",entity:type==="song"?"song":"album",limit:"12",lang:"ja_jp"});const r=await fetch("https://itunes.apple.com/search?"+p,{headers:{Accept:"application/json","User-Agent":"Mozilla/5.0 (compatible; K-REVIEW/1.0)"},cf:{cacheTtl:3600,cacheEverything:true}});if(!r.ok)throw new Error("Apple Search API HTTP "+r.status);const d=await r.json();return(d.results||[]).map(x=>mapApple(x,type)).filter(x=>x.title&&x.artistName&&x.artworkUrl);}
+async function searchDeezer(term,type){const endpoint=type==="song"?"track":"album";const r=await fetch("https://api.deezer.com/search/"+endpoint+"?"+new URLSearchParams({q:term,limit:"12"}),{headers:{Accept:"application/json"},cf:{cacheTtl:3600,cacheEverything:true}});if(!r.ok)throw new Error("Deezer Search API HTTP "+r.status);const d=await r.json();if(d.error)throw new Error(d.error.message||"Deezer Search API error");return(d.data||[]).map(x=>mapDeezer(x,type)).filter(x=>x.title&&x.artistName&&x.artworkUrl);}
+export async function onRequestGet(context){const u=new URL(context.request.url),type=u.searchParams.get("type")==="song"?"song":"album",artist=clean(u.searchParams.get("artist"),100),title=clean(u.searchParams.get("title"),140),country=(clean(u.searchParams.get("country"),2)||"jp").toLowerCase();if(!artist||!title)return json({error:"アーティスト名と作品名を入力してください。"},400,{"Cache-Control":"no-store"});if(!/^[a-z]{2}$/.test(country))return json({error:"国コードが正しくありません。"},400,{"Cache-Control":"no-store"});const term=artist+" "+title;const jobs=await Promise.allSettled([searchSpotify(term,type==="song"?"track":"album",context.env),searchApple(term,type,country),searchDeezer(term,type)]);const labels=["Spotify","Apple Music","Deezer"],results=[];jobs.forEach((j,i)=>{if(j.status==="fulfilled")results.push(...j.value);else console.error(labels[i]+" catalog search failed:",j.reason);});const seen=new Set(),unique=results.filter(x=>{const key=(x.artistName+"|"+x.title+"|"+(x.releaseDate||"")).toLowerCase();if(seen.has(key))return false;seen.add(key);return true;});unique.sort((a,b)=>({Spotify:0,"Apple Music":1,Deezer:2}[a.source]-({Spotify:0,"Apple Music":1,Deezer:2}[b.source]));return json({sources:labels.filter((_,i)=>jobs[i].status==="fulfilled"),spotifyConfigured:!!(context.env.SPOTIFY_CLIENT_ID&&context.env.SPOTIFY_CLIENT_SECRET),results:unique.slice(0,24),notice:!context.env.SPOTIFY_CLIENT_ID?"Spotify検索を有効にするにはCloudflare PagesのSpotify API認証情報が必要です。":""});}
