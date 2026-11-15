@@ -1,4 +1,4 @@
-# STAGELOG backend and deployment notes
+# K-REVIEW backend and deployment notes
 
 ## Current architecture
 
@@ -24,7 +24,7 @@ Use the Neon pooled connection string. Keep it server-side: do not expose it in 
 
 ## Neon configuration
 
-1. Open the STAGELOG project in Neon Console.
+1. Open the K-REVIEW project in Neon Console.
 2. Copy the pooled connection string for the intended branch.
 3. Store it in Cloudflare as DATABASE_URL.
 4. Keep a separate development branch/database where practical.
