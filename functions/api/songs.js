@@ -18,9 +18,16 @@ export async function onRequestGet(context) {
           r.id,
           r.song_id,
           (r.ratings->>6)::numeric AS score,
-          COALESCE(t.trust_weight, 1.000)::numeric AS weight
+          (COALESCE(t.trust_weight, 1.000)::numeric *
+            (1 + LEAST(0.500, LN(1 + COALESCE(l.received_likes, 0)) * 0.080))) AS weight
         FROM public.song_reviews r
         LEFT JOIN public.user_rating_trust t ON t.user_id = r.user_id
+        LEFT JOIN (
+          SELECT r2.user_id, COUNT(*)::int AS received_likes
+          FROM public.review_likes l2
+          JOIN public.song_reviews r2 ON r2.id = l2.review_id
+          GROUP BY r2.user_id
+        ) l ON l.user_id = r.user_id
         WHERE r.ratings ? '6'
           AND (r.ratings->>6) ~ '^[0-5]([.][0-9]+)?$'
       ),
