@@ -545,33 +545,37 @@ async function toggleReviewLike(reviewId,liked,songId){
 </script><script>
 let appleCatalogResults=[];
 
+function requestAppleSearchJsonp(params){
+ return new Promise((resolve,reject)=>{
+  const callbackName='__kreviewAppleSearch_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const script=document.createElement('script');
+  const cleanup=()=>{delete window[callbackName];script.remove();clearTimeout(timeout);};
+  const timeout=setTimeout(()=>{cleanup();reject(new Error('Apple Music検索がタイムアウトしました。通信環境を確認して再度お試しください。'));},12000);
+  window[callbackName]=(payload)=>{cleanup();resolve(payload||{});};
+  params.set('callback',callbackName);
+  script.src='https://itunes.apple.com/search?'+params.toString();
+  script.async=true;
+  script.onerror=()=>{cleanup();reject(new Error('Apple Music検索に接続できませんでした。'));};
+  document.head.appendChild(script);
+ });
+}
 async function searchAppleCatalog(event){
  if(event)event.preventDefault();
  const input=document.getElementById('appleSearchQuery'),q=input.value.trim(),type=document.getElementById('appleSearchType').value,box=document.getElementById('appleSearchResults'),status=document.getElementById('appleSearchStatus'),button=document.getElementById('appleSearchButton');
  if(q.length<2){status.textContent='2文字以上入力してください。';input.focus();return;}
  button.disabled=true;button.innerHTML='<span>検索中</span><b>…</b>';status.textContent='Apple Musicのカタログを検索しています…';box.innerHTML='<div class="catalog-loading">Apple Musicに接続しています</div>';
  try{
-  const cacheKey='kreview-apple-search-v1:'+['jp',type,q.toLocaleLowerCase()].join(':');
+  const cacheKey='kreview-apple-search-jsonp-v2:'+['jp',type,q.toLocaleLowerCase()].join(':');
   let results=null;
   try{const saved=sessionStorage.getItem(cacheKey);if(saved){const parsed=JSON.parse(saved);if(parsed.savedAt>Date.now()-5*60*1000)results=parsed.results;}}catch{}
   if(!results){
    const params=new URLSearchParams({term:q,country:'jp',media:'music',limit:'30',lang:'ja_jp'});
    if(type==='song')params.set('entity','song');else if(type==='album')params.set('entity','album');else if(type==='artist')params.set('entity','musicArtist');
-   let response=null;
-   try{response=await fetch('https://itunes.apple.com/search?'+params.toString(),{headers:{Accept:'application/json'}});}catch{}
-   if(response&&response.ok){
-    const data=await response.json();
-    results=(data.results||[]).map(x=>{
-     const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
-     return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?(x.artistName||''):kind==='album'?(x.collectionName||''):(x.trackName||''),albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl:x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'',storeUrl:x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'',previewUrl:x.previewUrl||null,trackCount:x.trackCount||null,primaryGenre:x.primaryGenreName||'',trackId:x.trackId||null,collectionId:x.collectionId||null};
-    }).filter(x=>x.title);
-   }else{
-    const fallbackParams=new URLSearchParams({q,type,country:'jp'});
-    const fallback=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});
-    const fallbackData=await fallback.json().catch(()=>({}));
-    if(!fallback.ok)throw new Error(fallbackData.error||'Apple Music検索に接続できませんでした。少し時間をおいて再度お試しください。');
-    results=fallbackData.results||[];
-   }
+   const data=await requestAppleSearchJsonp(params);
+   results=(data.results||[]).map(x=>{
+    const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
+    return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?(x.artistName||''):kind==='album'?(x.collectionName||''):(x.trackName||''),albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl:x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'',storeUrl:x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'',previewUrl:x.previewUrl||null,trackCount:x.trackCount||null,primaryGenre:x.primaryGenreName||'',trackId:x.trackId||null,collectionId:x.collectionId||null};
+   }).filter(x=>x.title);
    try{sessionStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),results}));}catch{}
   }
   appleCatalogResults=results||[];
