@@ -34,6 +34,7 @@ The public catalogue is being expanded through a moderated user-submission workf
 - Apple artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
 - No database migration is required. Existing album artwork and platform URLs are stored in `stagelog_albums`; standalone song artwork is represented as a single-release row linked to the existing song ID.
 - Apple Search API results are cached for five minutes in clients and advertise a one-hour shared cache lifetime. Apple documents an approximate 20-request-per-minute limit, which may change.
+- Existing-artwork backfill is disabled unless the Cloudflare Pages Preview environment has `STAGELOG_ARTWORK_BACKFILL_ENABLED=true`; the endpoint also rejects the `main` and `master` branches. Keep this variable unset in Production.
 
 ## Review score model
 
