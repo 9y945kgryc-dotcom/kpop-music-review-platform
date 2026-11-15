@@ -20,7 +20,7 @@ export async function onRequestGet({request,env}){
  const cache=typeof caches!=="undefined"?caches.default:null,cacheUrl=new URL("/__cache/spotify-search",url.origin);cacheUrl.search=new URLSearchParams({q:q.toLowerCase(),type}).toString();
  if(cache){const hit=await cache.match(cacheUrl);if(hit)return hit;}
  try{
-  const token=await spotifyToken(env,url.origin),params=new URLSearchParams({q,type,limit:"15",market:"JP"});
+  const token=await spotifyToken(env,url.origin),params=new URLSearchParams({q,type,limit:"10",market:"JP"});
   const response=await fetch("https://api.spotify.com/v1/search?"+params.toString(),{headers:{Authorization:"Bearer "+token,Accept:"application/json"}});
   if(!response.ok){const error=new Error(response.status===403?"Spotify APIへのアクセスが許可されていません。Developer Modeの利用条件・アプリ権限を確認してください。":"Spotify検索に失敗しました。");error.status=response.status===429?429:502;throw error;}
   const data=await response.json(),items=type==="album"?(data.albums?.items||[]):(data.tracks?.items||[]);
