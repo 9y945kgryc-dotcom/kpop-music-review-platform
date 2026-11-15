@@ -582,14 +582,17 @@ function addAppleResultToCatalog(index){
  document.getElementById('catalogType').value=item.kind==='album'?'album':'song';
  toggleCatalogFields();
  document.getElementById('catalogArtist').value=item.artistName||'';
- document.getElementById('catalogTitle').value=item.kind==='album'?(item.title||''):(item.title||'');
+ document.getElementById('catalogTitle').value=item.title||'';
  document.getElementById('catalogCollectionTitle').value=item.kind==='album'?item.title:(item.albumTitle||'');
  document.getElementById('catalogCover').value=item.artworkUrl||'';
- document.getElementById('catalogApple').value=item.storeUrl||'';
- document.getElementById('catalogSpotify').value='';
+ const provider=item.source||'';
+ const validProviderUrl=(value,hosts)=>{try{const u=new URL(value);return u.protocol==='https:'&&hosts.includes(u.hostname)?u.toString():'';}catch{return '';}};
+ document.getElementById('catalogApple').value=provider==='Apple Music'?validProviderUrl(item.storeUrl,['music.apple.com','itunes.apple.com']):'';
+ document.getElementById('catalogSpotify').value=provider==='Spotify'?validProviderUrl(item.storeUrl||item.spotifyUrl,['open.spotify.com']):'';
  if(item.releaseDate)document.getElementById('catalogDate').value=item.releaseDate.slice(0,10);
- document.getElementById('catalogArtworkResults').innerHTML=item.artworkUrl?'<div class="artwork-selected"><img src="'+esc(item.artworkUrl)+'" alt=""><div><b>Apple Musicから選択</b><small>'+esc(item.title)+'</small></div></div>':'';
- document.getElementById('catalogMessage').textContent='Apple Musicの検索結果を登録申請フォームに反映しました。内容を確認して送信してください。';
+ const providerLabel=provider==='Apple Music'?'Apple Music':provider==='Deezer'?'Deezer':provider==='Spotify'?'Spotify':'カタログ';
+ document.getElementById('catalogArtworkResults').innerHTML=item.artworkUrl?'<div class="artwork-selected"><img src="'+esc(item.artworkUrl)+'" alt=""><div><b>'+providerLabel+'から選択</b><small>'+esc(item.title)+'</small>'+(item.storeUrl?'<a href="'+esc(item.storeUrl)+'" target="_blank" rel="noopener noreferrer">'+providerLabel+'で確認 ↗</a>':'')+'</div></div>':'';
+ document.getElementById('catalogMessage').textContent=providerLabel+'の検索結果を登録申請フォームに反映しました。内容を確認して送信してください。';
 }
 </script>
 <script src="/account.js" defer></script>
