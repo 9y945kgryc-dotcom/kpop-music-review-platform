@@ -5,7 +5,7 @@ function isAppleArtworkUrl(value){
     const url=new URL(value);
     return url.protocol==="https:"&&(
       url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com")||
-      url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com")
+      url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com")||url.hostname==="cdn-images.dzcdn.net"
     );
   }catch{return false;}
 }
