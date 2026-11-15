@@ -7,7 +7,7 @@ export async function onRequestGet(context){
     const sql=sqlFor(context);
     const [followers,following]=await Promise.all([
       sql`SELECT u.id,u.display_name,u.avatar_key FROM public.user_follows f JOIN public.users u ON u.id=f.follower_id WHERE f.following_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`,
-      sql`SELECT u.id,u.display_name,u.avatar_key,u.avatar_url FROM public.user_follows f JOIN public.users u ON u.id=f.following_id WHERE f.follower_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`
+      sql`SELECT u.id,u.display_name,u.avatar_key FROM public.user_follows f JOIN public.users u ON u.id=f.following_id WHERE f.follower_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`
     ]);
     return json({followers,following});
   }catch(e){console.error("GET /api/follows",e);return json({error:"フォロー情報を取得できませんでした。"},500);}
