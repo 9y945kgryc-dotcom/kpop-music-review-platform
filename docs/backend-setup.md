@@ -1,4 +1,4 @@
-# STAGELOG backend and deployment notes
+# K-REVIEW backend and deployment notes
 
 ## Current architecture
 
@@ -24,7 +24,7 @@ Use the Neon pooled connection string. Keep it server-side: do not expose it in 
 
 ## Neon configuration
 
-1. Open the STAGELOG project in Neon Console.
+1. Open the K-REVIEW project in Neon Console.
 2. Copy the pooled connection string for the intended branch.
 3. Store it in Cloudflare as DATABASE_URL.
 4. Keep a separate development branch/database where practical.
@@ -115,7 +115,7 @@ The user submission flow is implemented with these files:
 
 1. In Neon, create a development branch / backup.
 2. Run the complete contents of `database/catalog-submissions.sql` in the SQL Editor for the Neon branch used by the site. Do not skip this step.
-3. In Cloudflare Pages → Settings → Variables and Secrets, add `STAGELOG_ADMIN_TOKEN` as a **secret** for Production (and Preview separately if needed). Use a long, random token. Never put it in the frontend, GitHub, or chat.
+3. In Cloudflare Pages → Settings → Variables and Secrets, add `K-REVIEW_ADMIN_TOKEN` as a **secret** for Production (and Preview separately if needed). Use a long, random token. Never put it in the frontend, GitHub, or chat.
 4. Keep `DATABASE_URL` configured as before and redeploy Pages.
 5. Open the site, submit a test song, then open “管理者審査”, enter the admin token, and approve / reject the test submission.
 
@@ -125,6 +125,6 @@ The user submission flow is implemented with these files:
 - Approved songs are inserted into the existing `artists` and `songs` tables, which the current song API already reads.
 - Approved album metadata is stored in `stagelog_albums`; its approved track IDs are linked in the JSONB `track_song_ids` field.
 - When an album is approved, its listed tracks are added to the song catalogue; existing same-title tracks for the same artist are reused.
-- Admin access currently uses one server-side shared token (`STAGELOG_ADMIN_TOKEN`), not individual admin accounts. Replace this with role-based authentication before a larger public launch.
+- Admin access currently uses one server-side shared token (`K-REVIEW_ADMIN_TOKEN`), not individual admin accounts. Replace this with role-based authentication before a larger public launch.
 - The current prototype does not yet send submitter notifications, provide an edit-request state, or offer a public album detail page.
 - Review ownership and user authentication are still separate follow-up work. Do not treat the current shared admin token as a complete user identity system.
