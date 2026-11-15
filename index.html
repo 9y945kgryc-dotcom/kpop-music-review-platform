@@ -545,19 +545,33 @@ async function toggleReviewLike(reviewId,liked,songId){
 </script><script>
 let appleCatalogResults=[];
 
-function requestAppleSearchJsonp(params){
- return new Promise((resolve,reject)=>{
-  const callbackName='__kreviewAppleSearch_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const script=document.createElement('script');
-  const cleanup=()=>{delete window[callbackName];script.remove();clearTimeout(timeout);};
-  const timeout=setTimeout(()=>{cleanup();reject(new Error('Apple Music検索がタイムアウトしました。通信環境を確認して再度お試しください。'));},12000);
-  window[callbackName]=(payload)=>{cleanup();resolve(payload||{});};
-  params.set('callback',callbackName);
-  script.src='https://itunes.apple.com/search?'+params.toString();
-  script.async=true;
-  script.onerror=()=>{cleanup();reject(new Error('Apple Music検索に接続できませんでした。'));};
-  document.head.appendChild(script);
- });
+async function fetchAppleSearchResults(params){
+ const url='https://itunes.apple.com/search?'+params.toString();
+ let directError=null;
+ try{
+  const response=await fetch(url,{mode:'cors',headers:{Accept:'application/json'}});
+  if(response.ok){const data=await response.json();return data.results||[];}
+  directError=new Error('Apple Search API HTTP '+response.status);
+ }catch(error){directError=error;}
+ try{
+  return await new Promise((resolve,reject)=>{
+   const callbackName='__kreviewAppleSearch_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+   const script=document.createElement('script');
+   const cleanup=()=>{delete window[callbackName];script.remove();clearTimeout(timeout);};
+   const timeout=setTimeout(()=>{cleanup();reject(new Error('JSONP timeout'));},10000);
+   window[callbackName]=(payload)=>{cleanup();resolve(payload&&payload.results||[]);};
+   const jsonpParams=new URLSearchParams(params);jsonpParams.set('callback',callbackName);
+   script.src='https://itunes.apple.com/search?'+jsonpParams.toString();script.async=true;
+   script.onerror=()=>{cleanup();reject(new Error('JSONP blocked'));};
+   document.head.appendChild(script);
+  });
+ }catch(jsonpError){
+  const fallbackParams=new URLSearchParams({q:params.get('term')||'',type:params.get('entity')==='song'?'song':params.get('entity')==='album'?'album':params.get('entity')==='musicArtist'?'artist':'all',country:params.get('country')||'jp'});
+  const fallback=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});
+  const fallbackData=await fallback.json().catch(()=>({}));
+  if(!fallback.ok)throw new Error(fallbackData.error||'Apple Music検索に接続できませんでした。通信環境またはApple側の一時的な制限をご確認ください。');
+  return fallbackData.results||[];
+ }
 }
 async function searchAppleCatalog(event){
  if(event)event.preventDefault();
@@ -565,14 +579,14 @@ async function searchAppleCatalog(event){
  if(q.length<2){status.textContent='2文字以上入力してください。';input.focus();return;}
  button.disabled=true;button.innerHTML='<span>検索中</span><b>…</b>';status.textContent='Apple Musicのカタログを検索しています…';box.innerHTML='<div class="catalog-loading">Apple Musicに接続しています</div>';
  try{
-  const cacheKey='kreview-apple-search-jsonp-v2:'+['jp',type,q.toLocaleLowerCase()].join(':');
+  const cacheKey='kreview-apple-search-multi-v3:'+['jp',type,q.toLocaleLowerCase()].join(':');
   let results=null;
   try{const saved=sessionStorage.getItem(cacheKey);if(saved){const parsed=JSON.parse(saved);if(parsed.savedAt>Date.now()-5*60*1000)results=parsed.results;}}catch{}
   if(!results){
    const params=new URLSearchParams({term:q,country:'jp',media:'music',limit:'30',lang:'ja_jp'});
    if(type==='song')params.set('entity','song');else if(type==='album')params.set('entity','album');else if(type==='artist')params.set('entity','musicArtist');
-   const data=await requestAppleSearchJsonp(params);
-   results=(data.results||[]).map(x=>{
+   const raw=await fetchAppleSearchResults(params);
+   results=raw.map(x=>{
     const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
     return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?(x.artistName||''):kind==='album'?(x.collectionName||''):(x.trackName||''),albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl:x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'',storeUrl:x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'',previewUrl:x.previewUrl||null,trackCount:x.trackCount||null,primaryGenre:x.primaryGenreName||'',trackId:x.trackId||null,collectionId:x.collectionId||null};
    }).filter(x=>x.title);
