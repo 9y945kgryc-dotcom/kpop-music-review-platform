@@ -3,8 +3,13 @@ function json(data,status=200,headers={}) {
 }
 function clean(value,max=120){return typeof value==="string"?value.trim().slice(0,max):"";}
 function safeArtwork(value){
-  try{const url=new URL(value);return url.protocol==="https:"&&(url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com"))?url.toString():null;}
-  catch{return null;}
+  try{
+    const url=new URL(value);
+    const appleHost=url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com")||url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com");
+    if(!appleHost||!["https:","http:"].includes(url.protocol))return null;
+    url.protocol="https:";
+    return url.toString();
+  }catch{return null;}
 }
 function safeHttps(value){
   try{const url=new URL(value);return url.protocol==="https:"&&["music.apple.com","itunes.apple.com"].includes(url.hostname)?url.toString():null;}
