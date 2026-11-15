@@ -2,7 +2,7 @@ import { json, requireUser, sqlFor } from "../_lib/auth.js";
 export async function onRequestGet(context){
   try{
     const id=Number(context.params.id);if(!Number.isSafeInteger(id)||id<1)return json({error:"ユーザーIDが不正です。"},400);
-    const sql=sqlFor(context),rows=await sql`SELECT id,display_name,avatar_url,avatar_key,bio,created_at FROM public.users WHERE id=${id} LIMIT 1`;
+    const sql=sqlFor(context),rows=await sql`SELECT id,display_name,avatar_key,bio,created_at FROM public.users WHERE id=${id} LIMIT 1`;
     if(!rows.length)return json({error:"ユーザーが見つかりません。"},404);
     const user=rows[0];
     const [reviews,favorites,counts,viewer]=await Promise.all([
