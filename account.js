@@ -5,7 +5,7 @@ function stagelogAvatar(u){return u?.avatar_url?'<img class="sl-avatar" src="'+s
 async function stagelogRefreshAuth(){
   try{const d=await stagelogApi('/api/auth/me');stagelogUser=d.user||null;}catch{stagelogUser=null;}
   const box=document.getElementById('stagelog-auth');if(!box)return;
-  box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenSettings()">設定</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button>':'<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button><button onclick="stagelogOpenSettings()">設定</button>'
+  box.innerHTML=stagelogUser?'<button onclick="stagelogOpenPage()">マイページ</button><button onclick="stagelogOpenSettings()">設定</button><button onclick="stagelogOpenNotifications()">通知 <span id="sl-unread"></span></button>':'<button onclick="location.href=\'/api/auth/google\'">Googleログイン</button><button onclick="stagelogOpenSettings()">設定</button>';
   if(stagelogUser)stagelogLoadUnread();if(typeof loadReviews==='function')await loadReviews();
 }
 
