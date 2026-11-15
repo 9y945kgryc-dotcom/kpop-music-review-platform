@@ -552,27 +552,25 @@ async function searchAppleCatalog(event){
  button.disabled=true;button.innerHTML='<span>検索中</span><b>…</b>';status.textContent='Apple Musicのカタログを検索しています…';box.innerHTML='<div class="catalog-loading">Apple Musicに接続しています</div>';
  try{
   const cacheKey='kreview-apple-search-v1:'+['jp',type,q.toLocaleLowerCase()].join(':');
-  let cached=null;
-  try{const saved=sessionStorage.getItem(cacheKey);if(saved){const parsed=JSON.parse(saved);if(parsed.savedAt>Date.now()-5*60*1000)cached=parsed.results;}}catch{}
-  let results=cached;
+  let results=null;
+  try{const saved=sessionStorage.getItem(cacheKey);if(saved){const parsed=JSON.parse(saved);if(parsed.savedAt>Date.now()-5*60*1000)results=parsed.results;}}catch{}
   if(!results){
    const params=new URLSearchParams({term:q,country:'jp',media:'music',limit:'30',lang:'ja_jp'});
    if(type==='song')params.set('entity','song');else if(type==='album')params.set('entity','album');else if(type==='artist')params.set('entity','musicArtist');
-   let response;
-   try{response=await fetch('https://itunes.apple.com/search?'+params.toString(),{headers:{Accept:'application/json'}});}
-   catch(directError){const fallbackParams=new URLSearchParams({q,type,country:'jp'});response=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});}
-   if(!response.ok&&response.status!==200){
-    const fallbackParams=new URLSearchParams({q,type,country:'jp'});
-    const fallback=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});
-    if(!fallback.ok){const errorData=await fallback.json().catch(()=>({}));throw new Error(errorData.error||'Apple Music検索に接続できませんでした。少し時間をおいて再度お試しください。');}
-    const fallbackData=await fallback.json();
-    results=fallbackData.results||[];
-   }else{
+   let response=null;
+   try{response=await fetch('https://itunes.apple.com/search?'+params.toString(),{headers:{Accept:'application/json'}});}catch{}
+   if(response&&response.ok){
     const data=await response.json();
     results=(data.results||[]).map(x=>{
      const kind=x.wrapperType==='artist'?'artist':x.wrapperType==='collection'?'album':'song';
      return{source:'Apple Music',kind,artistName:x.artistName||'',title:kind==='artist'?(x.artistName||''):kind==='album'?(x.collectionName||''):(x.trackName||''),albumTitle:x.collectionName||'',releaseDate:x.releaseDate||'',artworkUrl:x.artworkUrl600||x.artworkUrl100||x.artworkUrl60||'',storeUrl:x.artistViewUrl||x.collectionViewUrl||x.trackViewUrl||'',previewUrl:x.previewUrl||null,trackCount:x.trackCount||null,primaryGenre:x.primaryGenreName||'',trackId:x.trackId||null,collectionId:x.collectionId||null};
     }).filter(x=>x.title);
+   }else{
+    const fallbackParams=new URLSearchParams({q,type,country:'jp'});
+    const fallback=await fetch('/api/music-search?'+fallbackParams.toString(),{headers:{Accept:'application/json'}});
+    const fallbackData=await fallback.json().catch(()=>({}));
+    if(!fallback.ok)throw new Error(fallbackData.error||'Apple Music検索に接続できませんでした。少し時間をおいて再度お試しください。');
+    results=fallbackData.results||[];
    }
    try{sessionStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),results}));}catch{}
   }
