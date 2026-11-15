@@ -1,4 +1,4 @@
-# STAGELOG — K-POP Music Review Platform
+# K-REVIEW — K-POP Music Review Platform
 
 K-POP楽曲を複数の観点で評価・レビューし、ファン同士で発見・比較できるレビューサイトです。
 
