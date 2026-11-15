@@ -46,12 +46,14 @@ export async function onRequestPatch(context){
     const body=await context.request.json(),id=Number(body.id),itemType=body.type==="song"?"song":"album";
     const artworkUrl=safeUrl(body.artworkUrl,"artwork"),appleMusicUrl=safeUrl(body.appleMusicUrl,"apple"),spotifyUrl=safeUrl(body.spotifyUrl,"spotify");
     const collectionTitle=typeof body.collectionTitle==="string"?body.collectionTitle.trim().slice(0,160):"";
-    if(!Number.isSafeInteger(id)||(itemType==="album"&&id<1)||(itemType==="song"&&id<0)||!artworkUrl)return json({error:"作品IDまたはジャケット画像URLが正しくありません。"},400);
+    if(!Number.isSafeInteger(id)||(itemType==="album"&&id<1)||(itemType==="song"&&id<0)||(!artworkUrl&&!spotifyUrl))return json({error:"作品IDまたは保存するURLが正しくありません。"},400);
     const sql=getSql(context);
     if(itemType==="song"){
       const songs=await sql`SELECT s.id,s.title,a.name AS artist_name,s.release_date FROM public.songs s JOIN public.artists a ON a.id=s.artist_id WHERE s.id=${id} LIMIT 1`;
       if(!songs.length)return json({error:"対象楽曲が見つかりません。"},404);
       const song=songs[0];
+      if(spotifyUrl)await sql`UPDATE public.songs SET spotify_url=${spotifyUrl} WHERE id=${id}`;
+      if(!artworkUrl)return json({message:"Spotifyリンクを保存しました。",songId:id});
       const linked=await sql`SELECT id FROM public.stagelog_albums WHERE track_song_ids @> to_jsonb(ARRAY[${id}]::int[]) ORDER BY id LIMIT 1`;
       if(linked.length){
         await sql`UPDATE public.stagelog_albums SET cover_image_url=${artworkUrl},apple_music_url=COALESCE(${appleMusicUrl},apple_music_url),spotify_url=COALESCE(${spotifyUrl},spotify_url) WHERE id=${linked[0].id}`;
@@ -62,11 +64,11 @@ export async function onRequestPatch(context){
       return json({message:"シングルのジャケット画像を保存しました。",songId:id});
     }
     const rows=await sql`UPDATE public.stagelog_albums
-      SET cover_image_url=${artworkUrl},
+      SET cover_image_url=COALESCE(${artworkUrl},cover_image_url),
           apple_music_url=COALESCE(${appleMusicUrl},apple_music_url),
           spotify_url=COALESCE(${spotifyUrl},spotify_url)
       WHERE id=${id}
-      RETURNING id,title,artist_name,cover_image_url,apple_music_url`;
+      RETURNING id,title,artist_name,cover_image_url,apple_music_url,spotify_url`;
     if(!rows.length)return json({error:"対象作品が見つかりません。"},404);
     return json({album:rows[0],message:"ジャケット画像を保存しました。"});
   }catch(error){console.error("PATCH /api/admin/catalog-artwork failed:",error);return json({error:"ジャケット画像を保存できませんでした。"},500);}
