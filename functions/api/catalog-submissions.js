@@ -20,7 +20,7 @@ export async function onRequestPost(context){
     if(Number(recent[0]?.count||0)>=5)return json({error:"登録申請は1時間に5件までです。時間をおいて再度お試しください。"},429);
     if(appleMusicUrl){try{const u=new URL(appleMusicUrl);if(u.protocol!=="https:"||!["music.apple.com","itunes.apple.com"].includes(u.hostname))return json({error:"Apple MusicのURLが正しくありません。"},400)}catch{return json({error:"Apple MusicのURLが正しくありません。"},400)}}
     if(!type||!artist||!title)return json({error:"種別・アーティスト名・タイトルは必須です。"},400);
-    if(coverImageUrl&&!isAppleArtworkUrl(coverImageUrl))return json({error:"ジャケット画像はDeezerの検索候補から選択してください。"},400);
+    if(coverImageUrl&&!isAllowedArtworkUrl(coverImageUrl))return json({error:"ジャケット画像はDeezerの検索候補から選択してください。"},400);
     if(releaseDate&&!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
     if(type==="album"&&tracks.length===0)return json({error:"アルバムには1曲以上の収録曲が必要です。"},400);
     if(deezerUrl){try{const u=new URL(deezerUrl);if(u.protocol!=="https:"||u.hostname!=="www.deezer.com")return json({error:"DeezerのURLが正しくありません。"},400)}catch{return json({error:"DeezerのURLが正しくありません。"},400)}}
