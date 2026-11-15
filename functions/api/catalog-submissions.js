@@ -13,7 +13,7 @@ export async function onRequestPost(context){
   try{
     const user=await requireUser(context);if(!user)return json({error:"楽曲・アルバムの登録申請にはGoogleログインが必要です。"},401);
     const body=await context.request.json(),type=body.type==="album"?"album":body.type==="song"?"song":null;
-    const artist=cleanText(body.artist,120),title=cleanText(body.title,160),collectionTitle=cleanText(body.collectionTitle,160),releaseDate=cleanText(body.releaseDate,10),note=cleanText(body.note,1000),releaseType=cleanText(body.releaseType,40)||"album",coverImageUrl=cleanText(body.coverImageUrl,500),appleMusicUrl=cleanText(body.appleMusicUrl,500),deezerUrl=cleanText(body.deezerUrl,500);
+    const artist=cleanText(body.artist,120),title=cleanText(body.title,160),collectionTitle=cleanText(body.collectionTitle,160),releaseDate=cleanText(body.releaseDate,10),note=cleanText(body.note,1000),releaseType=cleanText(body.releaseType,40)||"album",coverImageUrl=cleanText(body.coverImageUrl,500),appleMusicUrl=cleanText(body.appleMusicUrl,500),deezerUrl=cleanText(body.deezerUrl,500),spotifyUrl=cleanText(body.spotifyUrl,500);
     const tracks=Array.isArray(body.tracks)?body.tracks.map(x=>cleanText(x,160)).filter(Boolean).slice(0,60):[];
     const sql=sqlFor(context);
     const recent=await sql`SELECT COUNT(*)::int AS count FROM public.catalog_submissions WHERE user_id=${user.id} AND created_at>NOW()-INTERVAL '1 hour'`;
@@ -24,6 +24,7 @@ export async function onRequestPost(context){
     if(releaseDate&&!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
     if(type==="album"&&tracks.length===0)return json({error:"アルバムには1曲以上の収録曲が必要です。"},400);
     if(deezerUrl){try{const u=new URL(deezerUrl);if(u.protocol!=="https:"||u.hostname!=="www.deezer.com")return json({error:"DeezerのURLが正しくありません。"},400)}catch{return json({error:"DeezerのURLが正しくありません。"},400)}}
+    if(spotifyUrl){try{const u=new URL(spotifyUrl);if(u.protocol!=="https:"||u.hostname!=="open.spotify.com"||!/^\/(track|album)\/[A-Za-z0-9]+\/?$/.test(u.pathname))return json({error:"Spotifyの楽曲・アルバムURLが正しくありません。"},400)}catch{return json({error:"SpotifyのURLが正しくありません。"},400)}}
     const existingArtist=await sql`SELECT id FROM public.artists WHERE LOWER(BTRIM(name))=LOWER(BTRIM(${artist})) LIMIT 1`;
     if(type==="song"&&existingArtist.length){
       const existingSong=await sql`SELECT id FROM public.songs WHERE artist_id=${existingArtist[0].id} AND LOWER(BTRIM(title))=LOWER(BTRIM(${title})) LIMIT 1`;
@@ -35,7 +36,7 @@ export async function onRequestPost(context){
     }
     const pendingDuplicate=await sql`SELECT id FROM public.catalog_submissions WHERE submission_type=${type} AND status='pending' AND LOWER(BTRIM(payload->>'artist'))=LOWER(BTRIM(${artist})) AND LOWER(BTRIM(payload->>'title'))=LOWER(BTRIM(${title})) AND (${type}='song' OR COALESCE(payload->>'releaseDate','')=COALESCE(${releaseDate},'')) LIMIT 1`;
     if(pendingDuplicate.length)return json({error:"同じ内容の登録申請がすでに審査待ちです。重ねて申請する必要はありません。",duplicate:true,submissionId:pendingDuplicate[0].id},409);
-    const payload={artist,title,collectionTitle,releaseDate:releaseDate||null,note,releaseType,coverImageUrl:coverImageUrl||null,appleMusicUrl:appleMusicUrl||null,deezerUrl:deezerUrl||null,tracks};
+    const payload={artist,title,collectionTitle,releaseDate:releaseDate||null,note,releaseType,coverImageUrl:coverImageUrl||null,appleMusicUrl:appleMusicUrl||null,deezerUrl:deezerUrl||null,spotifyUrl:spotifyUrl||null,tracks};
     const rows=await sql`INSERT INTO public.catalog_submissions(submission_type,payload,user_id) VALUES(${type},${JSON.stringify(payload)}::jsonb,${user.id}) RETURNING id,submission_type,status,created_at`;
     return json({message:"登録申請を受け付けました。管理者の確認後に公開されます。",submission:rows[0]},201);
   }catch(error){console.error("POST /api/catalog-submissions failed:",error);return json({error:"申請を保存できませんでした。管理者にお問い合わせください。"},500);}
