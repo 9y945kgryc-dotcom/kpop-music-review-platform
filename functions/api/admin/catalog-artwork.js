@@ -3,8 +3,8 @@ import { neon } from "@neondatabase/serverless";
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});}
 function authorized(context){const expected=context.env.STAGELOG_ADMIN_TOKEN,supplied=context.request.headers.get("Authorization")||"";return !!expected&&supplied===`Bearer ${expected}`;}
 function getSql(context){if(!context.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured");return neon(context.env.DATABASE_URL);}
-function previewBackfillEnabled(context){const branch=context.env.CF_PAGES_BRANCH;return context.env.STAGELOG_ARTWORK_BACKFILL_ENABLED==="true"&&!!branch&&branch!=="main"&&branch!=="master";}
-function previewOnlyResponse(){return json({error:"既存ジャケットの補完はPreview環境限定です。Preview環境のSTAGELOG_ARTWORK_BACKFILL_ENABLEDをtrueにしてください。"},403);}
+function backfillEnabled(context){return context.env.STAGELOG_ARTWORK_BACKFILL_ENABLED==="true";}
+function disabledResponse(){return json({error:"ジャケット補完機能は現在無効です。管理者がCloudflare Pagesの環境変数を確認してください。"},403);}
 function safeUrl(value,kind){
   if(typeof value!=="string"||!value.trim())return null;
   try{const u=new URL(value);if(u.protocol!=="https:")return null;
@@ -16,7 +16,7 @@ function safeUrl(value,kind){
 }
 export async function onRequestGet(context){
   if(!authorized(context))return json({error:"管理者認証に失敗しました。"},401);
-  if(!previewBackfillEnabled(context))return previewOnlyResponse();
+  if(!backfillEnabled(context))return disabledResponse();
   try{
     const sql=getSql(context);
     const rows=await sql`
