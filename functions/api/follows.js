@@ -6,7 +6,7 @@ export async function onRequestGet(context){
     if(!Number.isSafeInteger(targetId)||targetId<1)return json({error:"ユーザーIDが不正です。"},400);
     const sql=sqlFor(context);
     const [followers,following]=await Promise.all([
-      sql`SELECT u.id,u.display_name,u.avatar_key,u.avatar_url FROM public.user_follows f JOIN public.users u ON u.id=f.follower_id WHERE f.following_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`,
+      sql`SELECT u.id,u.display_name,u.avatar_key FROM public.user_follows f JOIN public.users u ON u.id=f.follower_id WHERE f.following_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`,
       sql`SELECT u.id,u.display_name,u.avatar_key,u.avatar_url FROM public.user_follows f JOIN public.users u ON u.id=f.following_id WHERE f.follower_id=${targetId} ORDER BY f.created_at DESC LIMIT 200`
     ]);
     return json({followers,following});
