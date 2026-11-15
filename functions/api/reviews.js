@@ -1,6 +1,6 @@
 import { json, requireUser, sqlFor } from "./_lib/auth.js";
 export async function onRequestGet(context){
-  try{const sql=sqlFor(context);const rows=await sql`SELECT r.id,r.song_id,r.ratings,r.comment,r.created_at,u.id AS user_id,u.display_name,u.avatar_url,u.avatar_key FROM public.song_reviews r LEFT JOIN public.users u ON u.id=r.user_id ORDER BY r.created_at DESC LIMIT 500`;return json(rows);}
+  try{const sql=sqlFor(context),viewer=await requireUser(context);const rows=await sql`SELECT r.id,r.song_id,r.ratings,r.comment,r.created_at,u.id AS user_id,u.display_name,u.avatar_url,u.avatar_key,COALESCE(l.like_count,0)::int AS like_count,COALESCE(v.liked,false) AS liked FROM public.song_reviews r LEFT JOIN public.users u ON u.id=r.user_id LEFT JOIN (SELECT review_id,COUNT(*) AS like_count FROM public.review_likes GROUP BY review_id) l ON l.review_id=r.id LEFT JOIN (SELECT review_id,true AS liked FROM public.review_likes WHERE user_id=${viewer?.id||0}) v ON v.review_id=r.id ORDER BY r.created_at DESC LIMIT 500`;return json(rows);}
   catch(error){console.error("GET /api/reviews failed:",error);return json({error:"Could not load reviews"},500);}
 }
 export async function onRequestPost(context){
