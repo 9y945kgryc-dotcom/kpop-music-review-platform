@@ -43,13 +43,13 @@ create table if not exists public.song_versions (
 -- Group / unit membership history. A member is represented as an artist
 -- record of type solo or other, allowing the same person to join multiple groups.
 create table if not exists public.artist_members (
+  id uuid primary key default gen_random_uuid(),
   group_artist_id uuid not null references public.artists(id) on delete cascade,
   member_artist_id uuid not null references public.artists(id) on delete cascade,
   joined_on date,
   left_on date,
   member_position text,
   sort_order smallint not null default 0,
-  primary key (group_artist_id, member_artist_id, joined_on),
   check (group_artist_id <> member_artist_id),
   check (left_on is null or joined_on is null or left_on >= joined_on)
 );
