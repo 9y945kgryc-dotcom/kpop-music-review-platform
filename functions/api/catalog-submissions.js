@@ -3,10 +3,7 @@ function cleanText(value,max){return typeof value==="string"?value.trim().slice(
 function isAllowedArtworkUrl(value){
   try{
     const url=new URL(value);
-    return url.protocol==="https:"&&(
-      url.hostname==="mzstatic.com"||url.hostname.endsWith(".mzstatic.com")||
-      url.hostname==="itunes.apple.com"||url.hostname.endsWith(".itunes.apple.com")||url.hostname==="coverartarchive.org"||url.hostname.endsWith(".coverartarchive.org")||url.hostname==="archive.org"||url.hostname.endsWith(".archive.org")||url.hostname==="dzcdn.net"||url.hostname.endsWith(".dzcdn.net")
-    );
+    return url.protocol==="https:"&&(url.hostname==="cdn-images.dzcdn.net"||url.hostname.endsWith(".dzcdn.net"));
   }catch{return false;}
 }
 export async function onRequestPost(context){
@@ -18,6 +15,16 @@ export async function onRequestPost(context){
     const sql=sqlFor(context);
     const recent=await sql`SELECT COUNT(*)::int AS count FROM public.catalog_submissions WHERE user_id=${user.id} AND created_at>NOW()-INTERVAL '1 hour'`;
     if(Number(recent[0]?.count||0)>=5)return json({error:"登録申請は1時間に5件までです。時間をおいて再度お試しください。"},429);
+    if(!type||!artist||!title)return json({error:"種別・アーティスト名・タイトルは必須です。"},400);
+    if(coverImageUrl&&!isAllowedArtworkUrl(coverImageUrl))return json({error:"ジャケット画像はDeezerの検索候補から選択してください。"},400);
+    if(releaseDate&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(releaseDate))return json({error:"発売日はYYYY-MM-DD形式で入力してください。"},400);
+    if(type==="album"&&tracks.length===0)return json({error:"アルバムには1曲以上の収録曲が必要です。"},400);
+    if(deezerUrl){
+      try{
+        const u=new URL(deezerUrl),expected=type==="album"?"album":"track";
+        if(u.protocol!=="https:"||!["www.deezer.com","deezer.com"].includes(u.hostname)||!new RegExp("^/(?:[a-z]{2}/)?"+expected+"/\\\\d+/?$").test(u.pathname))return json({error:"Deezerの作品URLが正しくありません。"},400);
+      }catch{return json({error:"Deezerの作品URLが正しくありません。"},400);}
+    }
     if(type==="album"){
       const existingAlbum=await sql`SELECT id FROM public.stagelog_albums WHERE LOWER(BTRIM(artist_name))=LOWER(BTRIM(${artist})) AND LOWER(BTRIM(title))=LOWER(BTRIM(${title})) AND (release_date IS NOT DISTINCT FROM ${releaseDate||null}::date OR ${releaseDate||null}::date IS NULL OR release_date IS NULL) LIMIT 1`;
       if(existingAlbum.length)return json({error:"このアーティスト・アルバム名の作品はすでに登録されています。既存アルバムを確認してください。",duplicate:true,existingId:existingAlbum[0].id},409);
