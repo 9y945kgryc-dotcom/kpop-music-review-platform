@@ -1,4 +1,4 @@
-# STAGELOG backend and deployment notes
+# K-REVIEW backend and deployment notes
 
 ## Current architecture
 
@@ -24,7 +24,7 @@ Use the Neon pooled connection string. Keep it server-side: do not expose it in 
 
 ## Neon configuration
 
-1. Open the STAGELOG project in Neon Console.
+1. Open the K-REVIEW project in Neon Console.
 2. Copy the pooled connection string for the intended branch.
 3. Store it in Cloudflare as DATABASE_URL.
 4. Keep a separate development branch/database where practical.
@@ -76,21 +76,47 @@ The overall score must remain independent and must never be calculated as the av
 
 A song should not be duplicated merely because it appears on more than one release. Release track listings should connect releases to the canonical song.
 
-## Current limitations
+## Current production scope and remaining boundaries
 
-- The initial song-card list is still seeded in the frontend; it is not yet a full searchable catalogue.
-- Reviews are shared through Neon, but the current API does not yet enforce signed-in user ownership.
-- Authentication, review editing/deletion, moderation workflows, and rate limiting must be implemented before broad public launch.
-- The normalized schema is a target model and has not yet been connected to the current Pages Function.
+- The artist / album / song catalogue is served from Neon and rendered by the responsive frontend.
+- Google sign-in and server-side session ownership are implemented.
+- Signed-in users can create, edit and delete their own reviews. A partial unique index enforces one review per signed-in user per song; the API limits a user to 10 new reviews per 10 minutes.
+- Likes, follows, favourites, notifications, public profiles and user rankings are implemented.
+- Song / album submissions require sign-in and remain pending until an administrator approves or rejects them.
+- The current administrator interface uses one shared `STAGELOG_ADMIN_TOKEN`; this is suitable only for a small, trusted operator group. Do not share the token. A future larger operation should use per-admin roles and audit logging.
+- The Apple Search API is cached at the edge. It is still subject to Apple's external availability and rate limits; do not run bulk searches.
+- The normalized schema in `database/schema.sql` remains a target model and is not connected to the current legacy review API.
 
-## Security checklist before public launch
+## Production environment variables
 
-- Keep DATABASE_URL in Cloudflare secrets only.
-- Validate all request bodies on the server.
-- Add authentication and ownership checks before allowing edits or deletes.
-- Add rate limiting / abuse protection to review submission.
-- Add moderation and reporting workflows.
-- Test migrations on a separate Neon branch and retain backups.
+Set these in Cloudflare Pages → Settings → Variables and Secrets:
+
+- `DATABASE_URL`: pooled connection string for the exact Neon branch used by the site (Secret).
+- `GOOGLE_CLIENT_ID`: Google OAuth web client ID.
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret (Secret).
+- `GOOGLE_REDIRECT_URI`: exact callback URL, normally `https://kpop-music-review-platform.pages.dev/api/auth/callback`.
+- `STAGELOG_ADMIN_TOKEN`: long, random administrator token (Secret).
+- `STAGELOG_ARTWORK_BACKFILL_ENABLED`: set to the literal string `true` only when administrator artwork backfill should be enabled in that environment. Leave unset otherwise.
+
+The public Google OAuth start endpoint has been verified to redirect to Google. Never paste secrets into chat or commit them to GitHub.
+
+## Production launch sequence
+
+1. Confirm the Production `DATABASE_URL` points to the intended Neon branch; do not assume the project's default branch is the app's live branch.
+2. Take a Neon restore point / branch before applying any schema change.
+3. Apply `migrations/007_user_song_review_uniqueness.sql` to the exact branch referenced by Production. It adds a partial unique index and preserves anonymous legacy reviews.
+4. Deploy the matching GitHub `main` revision to Cloudflare Pages.
+5. Configure the admin token and artwork backfill feature flag. The backfill endpoint requires both a valid bearer token and the feature flag.
+6. Verify Google login, read APIs, review create/edit/delete, likes, favourites, follows, notifications, catalogue submission, admin moderation and Apple artwork search.
+7. Keep the existing `song_reviews` table and numeric song IDs. Do not replace them with `database/schema.sql` as part of this launch.
+
+## Security boundaries
+
+- Keep all database credentials, Google client secrets and admin tokens server-side.
+- Validate all request bodies on the server and restrict artwork images to Apple CDN hosts.
+- Review creation requires a signed-in user, enforces one review per user/song and applies a per-user posting throttle.
+- Review edit/delete operations are owner-only. Review likes require sign-in and block self-likes.
+- The current admin token is a shared secret, not role-based admin identity. Rotate it if it is exposed and limit it to trusted operators.
 ## Catalogue schema extension
 
 An additive extension is available at database/catalog-model-v2.sql. It adds:
@@ -126,5 +152,4 @@ The user submission flow is implemented with these files:
 - Approved album metadata is stored in `stagelog_albums`; its approved track IDs are linked in the JSONB `track_song_ids` field.
 - When an album is approved, its listed tracks are added to the song catalogue; existing same-title tracks for the same artist are reused.
 - Admin access currently uses one server-side shared token (`STAGELOG_ADMIN_TOKEN`), not individual admin accounts. Replace this with role-based authentication before a larger public launch.
-- The current prototype does not yet send submitter notifications, provide an edit-request state, or offer a public album detail page.
-- Review ownership and user authentication are still separate follow-up work. Do not treat the current shared admin token as a complete user identity system.
+- Submitter notifications and a formal edit-request state are not yet implemented. The current catalogue UI provides artist, album and track browsing; full editorial metadata management remains a future enhancement.
