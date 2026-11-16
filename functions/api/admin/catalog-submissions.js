@@ -60,8 +60,15 @@ export async function onRequestPatch(context) {
       if (submission.submission_type === "song") {
         const duplicate = await sql`SELECT id FROM public.songs WHERE LOWER(title) = LOWER(${p.title}) AND artist_id = ${artistId} LIMIT 1`;
         if (duplicate.length) return json({ error: "同じアーティスト・曲名の楽曲がすでに登録されています。重複を確認してください。" }, 409);
-        await sql`INSERT INTO public.songs (title, artist_id) VALUES (${p.title}, ${artistId})`;
+        const insertedSong = await sql`INSERT INTO public.songs (title, artist_id, spotify_url, apple_music_url) VALUES (${p.title}, ${artistId}, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null}) RETURNING id`;
+        // A standalone song can still use its Apple Music release artwork in the existing album catalogue.
+        if (p.coverImageUrl) {
+          await sql`INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url)
+            VALUES (${p.collectionTitle || p.title}, ${p.artist}, ${p.releaseDate || null}, 'single', ${p.coverImageUrl}, ${JSON.stringify([insertedSong[0].id])}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})`;
+        }
       } else {
+        const duplicateAlbum = await sql`SELECT id FROM public.stagelog_albums WHERE LOWER(BTRIM(artist_name))=LOWER(BTRIM(${p.artist})) AND LOWER(BTRIM(title))=LOWER(BTRIM(${p.title})) AND (release_date IS NOT DISTINCT FROM ${p.releaseDate||null}::date OR ${p.releaseDate||null}::date IS NULL OR release_date IS NULL) LIMIT 1`;
+        if (duplicateAlbum.length) return json({ error: "同じアーティスト・アルバム名の作品がすでに登録されています。重複登録を防ぐため承認を中止しました。", duplicate: true, existingId: duplicateAlbum[0].id }, 409);
         const trackIds = [];
         for (const trackTitle of (Array.isArray(p.tracks) ? p.tracks : [])) {
           const duplicate = await sql`SELECT id FROM public.songs WHERE LOWER(title) = LOWER(${trackTitle}) AND artist_id = ${artistId} LIMIT 1`;
@@ -72,8 +79,8 @@ export async function onRequestPatch(context) {
           }
         }
         await sql`
-          INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids)
-          VALUES (${p.title}, ${p.artist}, ${p.releaseDate || null}, ${p.releaseType || "album"}, ${p.coverImageUrl || null}, ${JSON.stringify(trackIds)}::jsonb)
+          INSERT INTO public.stagelog_albums (title, artist_name, release_date, release_type, cover_image_url, track_song_ids, spotify_url, apple_music_url)
+          VALUES (${p.title}, ${p.artist}, ${p.releaseDate || null}, ${p.releaseType || "album"}, ${p.coverImageUrl || null}, ${JSON.stringify(trackIds)}::jsonb, ${p.spotifyUrl || null}, ${p.appleMusicUrl || null})
         `;
       }
     }
@@ -86,6 +93,10 @@ export async function onRequestPatch(context) {
       WHERE id = ${id} AND status = 'pending'
       RETURNING id, status, reviewed_at
     `;
+    if (submission.user_id) {
+      await sql`INSERT INTO public.user_notifications(recipient_id,actor_id,notification_type,entity_id,message)
+        VALUES(${submission.user_id},NULL,${decision === "approve" ? "submission_approved" : "submission_rejected"},${id},${decision === "approve" ? "登録申請が承認され、公開されました。" : "登録申請が却下されました。管理者メモをご確認ください。"})`;
+    }
     return json({ submission: updated[0], message: decision === "approve" ? "承認して公開しました。" : "申請を却下しました。" });
   } catch (error) {
     console.error("PATCH /api/admin/catalog-submissions failed:", error);

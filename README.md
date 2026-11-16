@@ -1,4 +1,4 @@
-# STAGELOG — K-POP Music Review Platform
+# K-REVIEW — K-POP Music Review Platform
 
 K-POP楽曲を複数の観点で評価・レビューし、ファン同士で発見・比較できるレビューサイトです。
 
@@ -12,7 +12,7 @@ K-POP楽曲を複数の観点で評価・レビューし、ファン同士で発
 
 The deployed review flow calls /api/reviews. The Pages Function reads and writes the current song_reviews table in Neon through @neondatabase/serverless, using the server-side DATABASE_URL environment variable.
 
-## Current prototype features
+## Implemented features
 
 - Search songs by title or artist.
 - Filter by artist and sort by overall score.
@@ -21,8 +21,25 @@ The deployed review flow calls /api/reviews. The Pages Function reads and writes
 - Save and load shared reviews through Neon.
 - View a song's score breakdown and submitted reviews.
 - Compare up to three songs.
+- Google sign-in with PKCE and 30-day server-side sessions.
+- User-owned review creation, editing and deletion; one review per signed-in user per song.
+- Review likes, user profiles, follows, favourites, notifications and community rankings.
+- User-submitted song and album catalogue proposals with administrator approval.
+- Mobile-responsive artist, album and track catalogue views.
 
-The public catalogue is being expanded through a moderated user-submission workflow. Users can submit songs and albums; submissions remain private until an administrator approves them.
+The catalogue uses the existing Neon artists, songs and stagelog_albums tables. User submissions remain private until an administrator approves them.
+
+### Artwork search and catalogue presentation
+
+- Artist cards use available release artwork as their visual identity.
+- Album and track pages display square Apple Music / iTunes catalogue artwork when available.
+- The submission form can search the Apple music catalogue by artist and release title, preview candidate covers, and attach the selected image and store link to the pending submission.
+- The administrator moderation screen previews submitted artwork before approval.
+- Administrators can find existing albums and standalone songs without artwork, search Apple catalogue candidates, and save a manually verified match.
+- Apple artwork search is provided server-side by `functions/api/artwork-search.js`; the admin-only backfill endpoint is `functions/api/admin/catalog-artwork.js`.
+- No database migration is required. Existing album artwork and platform URLs are stored in `stagelog_albums`; standalone song artwork is represented as a single-release row linked to the existing song ID.
+- Apple Search API results are cached for five minutes in clients and advertise a one-hour shared cache lifetime. Apple documents an approximate 20-request-per-minute limit, which may change.
+- Existing-artwork backfill is disabled by default. It is available only when `STAGELOG_ARTWORK_BACKFILL_ENABLED=true` is set in the intended Cloudflare Pages environment and the request also has a valid `STAGELOG_ADMIN_TOKEN`. Enable it in Production only after the admin token is configured.
 
 ## Review score model
 
@@ -40,11 +57,16 @@ The overall score is entered independently; it is not calculated as the average 
 ## Repository structure
 
 - index.html: current frontend.
-- functions/api/reviews.js: current Neon-backed review API.\n- functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).\n- functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
+- functions/api/reviews.js: current Neon-backed review API.
+- functions/api/catalog-submissions.js: public song / album submission endpoint (pending review).
+- functions/api/artwork-search.js: Apple Music / iTunes Store artwork search endpoint.
+- functions/api/admin/catalog-artwork.js: token-protected existing artwork backfill endpoint.
+- functions/api/admin/catalog-submissions.js: token-protected moderation endpoint.
 - database/schema.sql: proposed normalized relational model for profiles, artists, albums, songs, reviews, and social features.
 - database/catalog-model-v2.sql: additive relationships for album credits, track listings, song versions, and group membership.
 - docs/backend-setup.md: deployment and environment configuration notes.
-- .env.example: names of required environment variables only; never put real secrets here.\n- database/catalog-submissions.sql: additive tables for pending submissions and approved album metadata.
+- .env.example: names of required environment variables only; never put real secrets here.
+- database/catalog-submissions.sql: additive tables for pending submissions and approved album metadata.
 
 ## Important database note
 
@@ -56,13 +78,15 @@ The currently deployed API uses the legacy song_reviews table with numeric song 
 
 Set DATABASE_URL in Cloudflare Pages → Settings → Variables and Secrets for the relevant environments. It must be a Neon pooled PostgreSQL connection string and must remain server-side. Do not commit real connection strings, passwords, API keys, or OAuth secrets.
 
-## Next milestones
+## Production launch checklist
 
-1. Reconcile the legacy review table with the normalized catalogue model without losing existing reviews.
-2. Build the artist → album → song catalogue and stable song identifiers.
-3. Connect song detail pages to catalogue metadata and review aggregates.
-4. Add authentication and per-user review ownership before opening public submissions more widely.
-5. Add moderation, likes, favourites, and artist pages.
+1. Confirm Cloudflare Production uses the intended Neon branch and pooled `DATABASE_URL`.
+2. Confirm Google OAuth redirect URI is `https://kpop-music-review-platform.pages.dev/api/auth/callback` (or update it to the canonical custom domain if one is configured).
+3. Store `STAGELOG_ADMIN_TOKEN` as a Cloudflare secret; never expose it to the browser or commit it.
+4. Apply `migrations/007_user_song_review_uniqueness.sql` to the same Neon branch used by Production before deploying the review API update.
+5. Set `STAGELOG_ARTWORK_BACKFILL_ENABLED=true` only when ready to run the administrator-only artwork backfill.
+6. Verify sign-in, review create/edit/delete, likes, catalogue submissions, admin moderation, and Apple artwork search against the Production URL.
+7. Keep the legacy `song_reviews` table and numeric song IDs. The normalized schema remains a future migration target, not a replacement.
 
 ## Commercial use
 

@@ -1,0 +1,1 @@
+-- Add official streaming destinations for songs and albums.\nALTER TABLE public.songs ADD COLUMN IF NOT EXISTS spotify_url text;\nALTER TABLE public.songs ADD COLUMN IF NOT EXISTS apple_music_url text;\nALTER TABLE public.stagelog_albums ADD COLUMN IF NOT EXISTS spotify_url text;\nALTER TABLE public.stagelog_albums ADD COLUMN IF NOT EXISTS apple_music_url text;\n
